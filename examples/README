@@ -1,0 +1,4 @@
+`eemd_example` is a simple example program for the C interface of libeemd. It
+writes its output to `eemd_example.out`. If you have installed `pyeemd` you can
+plot the results with the Python script `eemd_example_plot.py`. To compile the
+example please run `make`.

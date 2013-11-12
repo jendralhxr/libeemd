@@ -1,0 +1,5 @@
+/obj/eemd.o
+/libeemd.so*
+/libeemd.a
+/eemd.h
+*.pyc
