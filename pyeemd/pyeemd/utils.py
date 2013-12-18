@@ -42,8 +42,19 @@ def extrema_splines(x, maxx, maxy, minx, miny):
 
 def plot_imfs(imfs, new_figs=True, plot_splines=True):
     """
-    An utility method for plotting IMFs and their envelope splines with
-    pylab.
+    Plot utility method for plotting IMFs and their envelope splines with
+    ``pylab``.
+
+    Parameters
+    ----------
+    imfs : ndarray
+        The IMFs as returned by :py:func:`pyeemd.pyeemd.emd` or :py:func:`pyeemd.pyeemd.eemd`.
+
+    new_figs : bool, optional
+        Whether to plot the IMFs in separate figures.
+
+    plot_splines : bool, optional
+        Whether to plot the envelope spline curves as well.
     """
     for i in range(imfs.shape[0]):
         label = "IMF #%d" % (i+1) if (i+1) < imfs.shape[0] else "Residual"
