@@ -23,22 +23,8 @@ Some utility functions for visualizing IMFs produced by the (E)EMD
 methods.
 """
 
-from scipy.interpolate import splrep, splev
 from pylab import plot, figure, title
-from pyeemd import emd_find_extrema
-
-def extrema_splines(x, maxx, maxy, minx, miny):
-    """Form the maximum and minimum spline envelopes from provided extrema."""
-    assert(len(maxx) >= 2)
-    assert(len(minx) >= 2)
-    maxorder = min(3, len(maxx)-1)
-    minorder = min(3, len(minx)-1)
-    maxspline = splrep(maxx, maxy, k=maxorder, s=0)
-    minspline = splrep(minx, miny, k=minorder, s=0)
-    maxs = splev(xrange(len(x)), maxspline)
-    mins = splev(xrange(len(x)), minspline)
-    return (maxs, mins)
-
+from pyeemd import emd_find_extrema, emd_evaluate_spline
 
 def plot_imfs(imfs, new_figs=True, plot_splines=True):
     """
@@ -67,7 +53,8 @@ def plot_imfs(imfs, new_figs=True, plot_splines=True):
         plot(imf, label=label)
         if plot_splines:
             _, maxx, maxy, minx, miny = emd_find_extrema(imf)
-            maxs, mins = extrema_splines(imf, maxx, maxy, minx, miny)
+            maxs = emd_evaluate_spline(maxx, maxy)
+            mins = emd_evaluate_spline(minx, miny)
             means = (maxs+mins)/2
             plot(maxs, "g--")
             plot(mins, "r--")
