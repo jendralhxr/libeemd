@@ -239,6 +239,7 @@ static inline void _sift(emd_workspace* restrict w, unsigned int S_number, unsig
 	// and the S number
 	unsigned int sift_counter = 0;
 	unsigned int S_counter = 0;
+	// Numbers of minima and maxima are initialized to dummy values
 	size_t num_max = (size_t)(-1);
 	size_t num_min = (size_t)(-1);
 	size_t prev_num_max = (size_t)(-1);
@@ -262,7 +263,7 @@ static inline void _sift(emd_workspace* restrict w, unsigned int S_number, unsig
 				S_counter = 0;
 			}
 		}
-		// Fit splines, choose order of spline based on number of extrema
+		// Fit splines, choose order of spline based on the number of extrema
 		emd_evaluate_spline(maxx, maxy, num_max, w->maxspline, w->spline_workspace);
 		emd_evaluate_spline(minx, miny, num_min, w->minspline, w->spline_workspace);
 		// Subtract envelope mean from the data
@@ -276,19 +277,24 @@ static inline void _sift(emd_workspace* restrict w, unsigned int S_number, unsig
 // procedure defined by _sift
 static void _emd(emd_workspace* restrict w, double* restrict output,
 		unsigned int S_number, unsigned int num_siftings) {
-	const size_t N = w->N;
-	const size_t M = emd_num_imfs(N);
 	// Provide some shorthands to avoid excessive '->' operators
+	const size_t N = w->N;
 	double* const x = w->x;
 	double* const res = w->res;
 	lock** locks = w->locks;
+	// Compute how many IMFs will be separated
+	const size_t M = emd_num_imfs(N);
+	// Loop over all IMFs to be separated from x
 	for (size_t imf_i=0; imf_i<M-1; imf_i++) {
+		// Store the residual from previous run to x
 		array_copy(res, N, x);
-		// Perform siftings
+		// Perform siftings on x until it is an IMF
 		_sift(w, S_number, num_siftings);
+		// Subtract this IMF from the original signal to form the residual for
+		// the next round
 		array_sub(x, N, res);
-		/* Add results to output. Use locks to ensure other threads
-		 are not writing to the same row of the output matrix at the same time */
+		// Add results to output. Use locks to ensure other threads are not
+		// writing to the same row of the output matrix at the same time
 		get_lock(locks[imf_i]);
 		array_add(x, N, output+N*imf_i);
 		release_lock(locks[imf_i]);
