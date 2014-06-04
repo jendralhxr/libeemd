@@ -223,6 +223,57 @@ void eemd(double const* restrict input, size_t N, double* restrict output,
 		array_div(output, N*M, ensemble_size);
 }
 
+
+// Helper function for applying the sifting procedure to w->x until it is
+// reduced to an IMF according to the stopping criteria given by S_number and
+// num_siftings
+static inline void _sift(emd_workspace* restrict w, unsigned int S_number, unsigned int num_siftings) {
+	const size_t N = w->N;
+	// Provide some shorthands to avoid excessive '->' operators
+	double* const x = w->x;
+	double* const maxx = w->maxx;
+	double* const maxy = w->maxy;
+	double* const minx = w->minx;
+	double* const miny = w->miny;
+	// Initialize counters that keep track of the number of siftings
+	// and the S number
+	unsigned int sift_counter = 0;
+	unsigned int S_counter = 0;
+	size_t num_max = (size_t)(-1);
+	size_t num_min = (size_t)(-1);
+	size_t prev_num_max = (size_t)(-1);
+	size_t prev_num_min = (size_t)(-1);
+	while (num_siftings == 0 || sift_counter < num_siftings) {
+		sift_counter++;
+		prev_num_max = num_max;
+		prev_num_min = num_min;
+		// Find extrema
+		const bool all_extrema_good = emd_find_extrema(x, N,
+				maxx, maxy, &num_max, minx, miny, &num_min);
+		// Check if we are finished based on the S-number criteria
+		if (S_number != 0) {
+			if (all_extrema_good && (num_max == prev_num_max) && (num_min == prev_num_min)) {
+				S_counter++;
+				if (S_counter > S_number) {
+					break;
+				}
+			}
+			else {
+				S_counter = 0;
+			}
+		}
+		// Fit splines, choose order of spline based on number of extrema
+		emd_evaluate_spline(maxx, maxy, num_max, w->maxspline, w->spline_workspace);
+		emd_evaluate_spline(minx, miny, num_min, w->minspline, w->spline_workspace);
+		// Subtract envelope mean from the data
+		for (size_t i=0; i<N; i++) {
+			x[i] -= 0.5*(w->maxspline[i] + w->minspline[i]);
+		}
+	}
+}
+
+// Helper function for extracting all IMFs from w->x using the sifting
+// procedure defined by _sift
 static void _emd(emd_workspace* restrict w, double* restrict output,
 		unsigned int S_number, unsigned int num_siftings) {
 	const size_t N = w->N;
@@ -230,47 +281,11 @@ static void _emd(emd_workspace* restrict w, double* restrict output,
 	// Provide some shorthands to avoid excessive '->' operators
 	double* const x = w->x;
 	double* const res = w->res;
-	double* const maxx = w->maxx;
-	double* const maxy = w->maxy;
-	double* const minx = w->minx;
-	double* const miny = w->miny;
 	lock** locks = w->locks;
 	for (size_t imf_i=0; imf_i<M-1; imf_i++) {
 		array_copy(res, N, x);
 		// Perform siftings
-		unsigned int sift_counter = 0;
-		unsigned int S_counter = 0;
-		size_t num_max = (size_t)(-1);
-		size_t num_min = (size_t)(-1);
-		size_t prev_num_max = (size_t)(-1);
-		size_t prev_num_min = (size_t)(-1);
-		while (num_siftings == 0 || sift_counter < num_siftings) {
-			sift_counter++;
-			prev_num_max = num_max;
-			prev_num_min = num_min;
-			// Find extrema
-			const bool all_extrema_good = emd_find_extrema(x, N,
-					maxx, maxy, &num_max, minx, miny, &num_min);
-			// Check if we are finished based on the S-number criteria
-			if (S_number != 0) {
-				if (all_extrema_good && (num_max == prev_num_max) && (num_min == prev_num_min)) {
-					S_counter++;
-					if (S_counter > S_number) {
-						break;
-					}
-				}
-				else {
-					S_counter = 0;
-				}
-			}
-			// Fit splines, choose order of spline based on number of extrema
-			emd_evaluate_spline(maxx, maxy, num_max, w->maxspline, w->spline_workspace);
-			emd_evaluate_spline(minx, miny, num_min, w->minspline, w->spline_workspace);
-			// Subtract envelope mean from the data
-			for (size_t i=0; i<N; i++) {
-				x[i] -= 0.5*(w->maxspline[i] + w->minspline[i]);
-			}
-		}
+		_sift(w, S_number, num_siftings);
 		array_sub(x, N, res);
 		/* Add results to output. Use locks to ensure other threads
 		 are not writing to the same row of the output matrix at the same time */
