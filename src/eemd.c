@@ -39,7 +39,7 @@ inline static void release_lock(__attribute__((unused)) lock* l) {}
 
 
 // Helper functions for working with data arrays
-inline static void array_copy(double const* src, size_t n, double* dest) {
+inline static void array_copy(double const* restrict src, size_t n, double* restrict dest) {
 	memcpy(dest, src, n*sizeof(double));
 }
 
