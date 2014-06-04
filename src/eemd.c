@@ -70,6 +70,8 @@ inline static double linear_extrapolate(double x0, double y0,
 typedef struct {
 	// The RNG
 	gsl_rng* r;
+	// Number of samples in the signal
+	size_t N;
 	// Signal and previous residual for EMD
 	double* x;
 	double* res;
@@ -92,6 +94,7 @@ emd_workspace* allocate_emd_workspace(size_t N, unsigned long int rng_seed) {
 	emd_workspace* w = malloc(sizeof(emd_workspace));
 	w->r = gsl_rng_alloc(gsl_rng_mt19937);
 	gsl_rng_set(w->r, rng_seed);
+	w->N = N;
 	w->x = malloc(N*sizeof(double));
 	w->res = malloc(N*sizeof(double));
 	w->maxx = malloc(N*sizeof(double));
@@ -124,7 +127,7 @@ void free_emd_workspace(emd_workspace* w) {
 
 // Helper function used internally for making a single EMD run with a
 // preallocated workspace
-static void _emd(emd_workspace* restrict w, size_t N, double* restrict output,
+static void _emd(emd_workspace* restrict w, double* restrict output,
 		unsigned int S_number, unsigned int num_siftings);
 
 // Main EEMD decomposition routine definition
@@ -196,7 +199,7 @@ void eemd(double const* restrict input, size_t N, double* restrict output,
 				}
 			}
 			// Extract IMFs with EMD
-			_emd(w, N, output, S_number, num_siftings);
+			_emd(w, output, S_number, num_siftings);
 			#pragma omp atomic
 			ensemble_counter++;
 			#if EEMD_DEBUG >= 1
@@ -220,8 +223,9 @@ void eemd(double const* restrict input, size_t N, double* restrict output,
 		array_div(output, N*M, ensemble_size);
 }
 
-static void _emd(emd_workspace* restrict w, size_t N, double* restrict output,
+static void _emd(emd_workspace* restrict w, double* restrict output,
 		unsigned int S_number, unsigned int num_siftings) {
+	const size_t N = w->N;
 	const size_t M = emd_num_imfs(N);
 	// Provide some shorthands to avoid excessive '->' operators
 	double* const x = w->x;
