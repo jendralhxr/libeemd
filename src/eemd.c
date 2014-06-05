@@ -48,6 +48,11 @@ inline static void array_add(double const* src, size_t n, double* dest) {
 		dest[i] += src[i];
 }
 
+inline static void array_add_to(double const* src1, double const* src2, size_t n, double* dest) {
+	for (size_t i=0; i<n; i++)
+		dest[i] = src1[i] + src2[i];
+}
+
 inline static void array_sub(double const* src, size_t n, double* dest) {
 	for (size_t i=0; i<n; i++)
 		dest[i] -= src[i];
@@ -174,10 +179,15 @@ void free_eemd_workspace(eemd_workspace* w) {
 	free(w); w = NULL;
 }
 
-// Helper function used internally for making a single EMD run with a
-// preallocated workspace
+// Forward declaration of a helper function used internally for making a single
+// EMD run with a preallocated workspace
 static void _emd(double* restrict input, emd_workspace* restrict w, double* restrict output,
 		unsigned int S_number, unsigned int num_siftings);
+
+// Forward declaration of a helper function for applying the sifting procedure to
+// input until it is reduced to an IMF according to the stopping criteria given
+// by S_number and num_siftings
+static inline void _sift(double* restrict input, sifting_workspace* restrict w, unsigned int S_number, unsigned int num_siftings);
 
 // Main EEMD decomposition routine definition
 void eemd(double const* restrict input, size_t N, double* restrict output,
@@ -273,6 +283,129 @@ void eemd(double const* restrict input, size_t N, double* restrict output,
 		const double one_per_ensemble_size = 1.0/ensemble_size;
 		array_mult(output, N*M, one_per_ensemble_size);
 	}
+}
+
+// Main CEEMDAN decomposition routine definition
+void ceemdan(double const* restrict input, size_t N, double* restrict output,
+		unsigned int ensemble_size, double noise_strength, unsigned int
+		S_number, unsigned int num_siftings, unsigned long int rng_seed) {
+	assert(ensemble_size >= 1);
+	assert(noise_strength >= 0);
+	assert(ensemble_size == 1 || noise_strength > 0);
+	assert(ensemble_size > 1 || noise_strength == 0);
+	assert(S_number > 0 || num_siftings > 0);
+	// For empty data we have nothing to do
+	if (N == 0) {
+		return;
+	}
+	const size_t M = emd_num_imfs(N);
+	const double one_per_ensemble_size = 1.0/ensemble_size;
+	// The noise standard deviation is noise_strength times the standard deviation of input data
+	const double noise_sigma = (noise_strength != 0)? gsl_stats_sd(input, 1, N)*noise_strength : 0;
+	// Initialize output data to zero
+	memset(output, 0x00, M*N*sizeof(double));
+	// Each thread gets a separate workspace if we are using OpenMP
+	eemd_workspace** ws = NULL;
+	// All threads need to write to the same row of the output matrix
+	// so we need only one shared lock
+	lock* output_lock = malloc(sizeof(lock));
+	init_lock(output_lock);
+	// The threads also share the same precomputed noise
+	double* noise = malloc(ensemble_size*N*sizeof(double));
+	// Since we need to decompose this noise by EMD, we also need arrays for storing
+	// the residuals
+	double* noise_res = malloc(ensemble_size*N*sizeof(double));
+	// Don't start unnecessary threads if the ensemble is small
+	#ifdef _OPENMP
+	if (omp_get_num_threads() > (int)ensemble_size) {
+		omp_set_num_threads(ensemble_size);
+	}
+	#endif
+	int num_threads;
+	// The following section is executed in parallel
+	#pragma omp parallel
+	{
+		#ifdef _OPENMP
+		num_threads = omp_get_num_threads();
+		const int thread_id = omp_get_thread_num();
+		#if EEMD_DEBUG >= 1
+		#pragma omp single
+		fprintf(stderr, "Using %d thread(s) with OpenMP.\n", num_threads);
+		#endif
+		#else
+		num_threads = 1;
+		const int thread_id = 0;
+		#endif
+		#pragma omp single
+		{
+			ws = malloc(num_threads*sizeof(eemd_workspace*));
+		}
+		// Each thread allocates its own workspace
+		ws[thread_id] = allocate_eemd_workspace(N, rng_seed+thread_id);
+		eemd_workspace* w = ws[thread_id];
+		// Precompute and store white noise, since for each mode of the data we
+		// need the same mode of the corresponding realization of noise
+		#pragma omp for
+		for (size_t en_i=0; en_i<ensemble_size; en_i++) {
+			for (size_t j=0; j<N; j++) {
+				noise[N*en_i+j] = gsl_ran_gaussian(w->r, noise_sigma);
+			}
+		}
+	} // Return to sequental mode
+	// Allocate memory for the residual shared among all threads
+	double* restrict res = malloc(N*sizeof(double));
+	// For the first iteration the residual is the input signal
+	array_copy(input, N, res);
+	// Each mode is extracted sequentially, but we use parallelization in the inner loop
+	// to loop over ensemble members
+	for (size_t imf_i=0; imf_i<M; imf_i++) {
+		double* const imf = &output[imf_i*N];
+		#pragma omp parallel for
+		for (size_t en_i=0; en_i<ensemble_size; en_i++) {
+			const int thread_id = omp_get_thread_num();
+			eemd_workspace* w = ws[thread_id];
+			// Provide a pointer to the noise vector and noise residual used by
+			// this ensemble member
+			double* const noise_i = &noise[N*en_i];
+			double* const noise_r = &noise_res[N*en_i];
+			// Initialize input signal as data + noise
+			array_add_to(res, noise_i, N, w->x);
+			// Sift to extract first EMD mode
+			_sift(w->x, w->emd_w->sift_w, S_number, num_siftings);
+			// Sum to output vector
+			get_lock(output_lock);
+			array_add(w->x, N, imf);
+			release_lock(output_lock);
+			// Extract next EMD mode of the noise. This is used as the noise for
+			// the next mode extracted from the data
+			if (imf_i == 0) {
+				array_copy(noise_i, N, noise_r);
+			}
+			else {
+				array_copy(noise_r, N, noise_i);
+			}
+			_sift(noise_i, w->emd_w->sift_w, S_number, num_siftings);
+			array_sub(noise_i, N, noise_res);
+		}
+		// Divide with ensemble size to get the average
+		array_mult(imf, N, one_per_ensemble_size);
+		// Subtract this IMF from the previous residual to form the new one
+		array_sub(imf, N, res);
+	}
+	// Save final residual
+	get_lock(output_lock);
+	array_add(res, N, output+N*(M-1));
+	release_lock(output_lock);
+	// Free global resources
+	for (int thread_id=0; thread_id<num_threads; thread_id++) {
+		free_eemd_workspace(ws[thread_id]);
+	}
+	free(ws); ws = NULL;
+	free(res); res = NULL;
+	free(noise_res); noise_res = NULL;
+	free(noise); noise = NULL;
+	destroy_lock(output_lock);
+	free(output_lock); output_lock = NULL;
 }
 
 
