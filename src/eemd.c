@@ -186,7 +186,7 @@ void eemd(double const* restrict input, size_t N, double* restrict output,
 		ws[thread_id] = allocate_emd_workspace(N, gsl_rng_default_seed+thread_id);
 		emd_workspace* w = ws[thread_id];
 		w->locks = locks;
-		// Loop over all ensemble members, divinding them among the threads
+		// Loop over all ensemble members, dividing them among the threads
 		#pragma omp for
 		for (size_t en_i=0; en_i<ensemble_size; en_i++) {
 			// Initialize ensemble member as input data + noise
