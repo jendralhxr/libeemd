@@ -1,2 +1,1 @@
-separate x and res from emd_workspace struct
 replace division with array_div with multiplication
