@@ -335,15 +335,15 @@ static void _emd(double* restrict input, emd_workspace* restrict w, double* rest
 	lock** locks = w->locks;
 	// Compute how many IMFs will be separated
 	const size_t M = emd_num_imfs(N);
+	// We need to store a copy of the original signal so that once it is
+	// reduced to an IMF we have something to subtract the IMF from to form
+	// the residual for the next iteration
+	array_copy(input, N, res);
 	// Loop over all IMFs to be separated from input
 	for (size_t imf_i=0; imf_i<M-1; imf_i++) {
-		// We need to store a copy of the original signal so that once it is
-		// reduced to an IMF we have something to subtract the IMF from to form
-		// the residual for the next iteration
-		if (imf_i == 0) {
-			array_copy(input, N, res);
-		}
-		else {
+		if (imf_i != 0) {
+			// Except for the first iteration, restore the previous residual
+			// and use it as an input
 			array_copy(res, N, input);
 		}
 		// Perform siftings on input until it is an IMF
