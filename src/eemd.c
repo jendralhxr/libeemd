@@ -182,7 +182,7 @@ static void _emd(double* restrict input, emd_workspace* restrict w, double* rest
 // Main EEMD decomposition routine definition
 void eemd(double const* restrict input, size_t N, double* restrict output,
 		unsigned int ensemble_size, double noise_strength, unsigned int
-		S_number, unsigned int num_siftings) {
+		S_number, unsigned int num_siftings, unsigned long int rng_seed) {
 	assert(ensemble_size >= 1);
 	assert(noise_strength >= 0);
 	assert(ensemble_size == 1 || noise_strength > 0);
@@ -233,7 +233,7 @@ void eemd(double const* restrict input, size_t N, double* restrict output,
 			}
 		}
 		// Each thread allocates its own workspace
-		ws[thread_id] = allocate_eemd_workspace(N, gsl_rng_default_seed+thread_id);
+		ws[thread_id] = allocate_eemd_workspace(N, rng_seed+thread_id);
 		eemd_workspace* w = ws[thread_id];
 		// All threads share the same array of locks
 		w->emd_w->locks = locks;

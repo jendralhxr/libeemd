@@ -45,7 +45,8 @@ _libeemd.eemd.argtypes = [ndpointer(float, flags=('C', 'A')),
                           ctypes.c_uint,
                           ctypes.c_double,
                           ctypes.c_uint,
-                          ctypes.c_uint]
+                          ctypes.c_uint,
+                          ctypes.c_ulong]
 # Call signature for emd_find_extrema()
 _libeemd.emd_find_extrema.restype = ctypes.c_bool
 _libeemd.emd_find_extrema.argtypes = [ndpointer(float, flags=('C', 'A')),
@@ -70,7 +71,7 @@ _libeemd.emd_evaluate_spline.argtypes = [ndpointer(float, flags=('C', 'A')),
 
 
 def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
-         num_siftings=0):
+         num_siftings=0, rng_seed=0):
     """
     Decompose input data array `inp` to Intrinsic Mode Functions (IMFs) with the
     Ensemble Empirical Mode Decomposition algorithm [1]_.
@@ -104,6 +105,10 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
     num_siftings : int, optional
         Use a maximum number of siftings as a stopping criterion. If
         `num_siftings` is zero, this stopping criterion is ignored.
+
+    rng_seed : int, optional
+        A seed for the random number generator. A value of zero denotes
+        an implementation-defined default value.
 
     Notes
     ------
@@ -149,7 +154,7 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
     outbuffer = numpy.zeros(M*N, dtype=float, order='C')
     # Call C routine
     _libeemd.eemd(inp, N, outbuffer, ensemble_size, noise_strength, S_number,
-                  num_siftings)
+                  num_siftings, rng_seed)
     # Reshape outbuffer to a proper 2D array and return
     outbuffer = numpy.reshape(outbuffer, (M, N))
     return outbuffer

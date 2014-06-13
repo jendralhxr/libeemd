@@ -86,3 +86,11 @@ def test_extract_residual():
     residual = imfs[-1,:]
     print abs(residual-x)[10:-10]
     assert allclose(residual[10:-10], x[10:-10], rtol=0.1, atol=1)
+
+def test_rng_seed():
+    N = 64
+    x1 = normal(0, 1, N)
+    x2 = normal(0, 1, N)
+    imfs1 = eemd(x1, S_number=4, num_siftings=100, rng_seed=3141)
+    imfs2 = eemd(x2, S_number=4, num_siftings=100, rng_seed=5926)
+    assert not allclose(imfs1, imfs2)

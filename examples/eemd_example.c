@@ -28,6 +28,7 @@ const size_t ensemble_size = 250;
 const unsigned int S_number = 4;
 const unsigned int num_siftings = 0;
 const double noise_strength = 0.2;
+const unsigned long int rng_seed = 0;
 const char outfile[] = "eemd_example.out";
 
 // An example signal to decompose
@@ -47,7 +48,7 @@ int main(void) {
 	size_t M = emd_num_imfs(N);
 	double* outp = malloc(M*N*sizeof(double));
 	// Run eemd
-	eemd(inp, N, outp, ensemble_size, noise_strength, S_number, num_siftings);
+	eemd(inp, N, outp, ensemble_size, noise_strength, S_number, num_siftings, rng_seed);
 	// Write output to file
 	FILE* fp = fopen(outfile, "w");
 	for (size_t j=0; j<N; j++) {
