@@ -53,9 +53,9 @@ inline static void array_sub(double const* src, size_t n, double* dest) {
 		dest[i] -= src[i];
 }
 
-inline static void array_div(double* dest, size_t n, double val) {
+inline static void array_mult(double* dest, size_t n, double val) {
 	for (size_t i=0; i<n; i++)
-		dest[i] /= val;
+		dest[i] *= val;
 }
 
 // Helper function for extrapolating data at the ends. For a line passing
@@ -270,8 +270,10 @@ void eemd(double const* restrict input, size_t N, double* restrict output,
 		}
 	} // End of parallel block
 	// Divide output data by the ensemble size to get the average
-	if (ensemble_size != 1)
-		array_div(output, N*M, ensemble_size);
+	if (ensemble_size != 1) {
+		const double one_per_ensemble_size = 1.0/ensemble_size;
+		array_mult(output, N*M, one_per_ensemble_size);
+	}
 }
 
 
