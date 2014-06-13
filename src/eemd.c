@@ -193,9 +193,8 @@ void eemd(double const* restrict input, size_t N, double* restrict output,
 		return;
 	}
 	const size_t M = emd_num_imfs(N);
-	// Compute standard deviation of input data
-	const double sigma = gsl_stats_sd(input, 1, N);
-	const double noise_sigma = sigma*noise_strength;
+	// The noise standard deviation is noise_strength times the standard deviation of input data
+	const double noise_sigma = (noise_strength != 0)? gsl_stats_sd(input, 1, N)*noise_strength : 0;
 	// Initialize output data to zero
 	memset(output, 0x00, M*N*sizeof(double));
 	// Each thread gets a separate workspace if we are using OpenMP
