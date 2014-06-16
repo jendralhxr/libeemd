@@ -359,34 +359,39 @@ void ceemdan(double const* restrict input, size_t N, double* restrict output,
 	// Each mode is extracted sequentially, but we use parallelization in the inner loop
 	// to loop over ensemble members
 	for (size_t imf_i=0; imf_i<M; imf_i++) {
+		// Provide a pointer to the output vector where this IMF will be stored
 		double* const imf = &output[imf_i*N];
-		#pragma omp parallel for
-		for (size_t en_i=0; en_i<ensemble_size; en_i++) {
+		// Then we go parallel to compute the different ensemble members
+		#pragma omp parallel
+		{
 			const int thread_id = omp_get_thread_num();
 			eemd_workspace* w = ws[thread_id];
-			// Provide a pointer to the noise vector and noise residual used by
-			// this ensemble member
-			double* const noise_i = &noise[N*en_i];
-			double* const noise_r = &noise_res[N*en_i];
-			// Initialize input signal as data + noise
-			array_add_to(res, noise_i, N, w->x);
-			// Sift to extract first EMD mode
-			_sift(w->x, w->emd_w->sift_w, S_number, num_siftings);
-			// Sum to output vector
-			get_lock(output_lock);
-			array_add(w->x, N, imf);
-			release_lock(output_lock);
-			// Extract next EMD mode of the noise. This is used as the noise for
-			// the next mode extracted from the data
-			if (imf_i == 0) {
-				array_copy(noise_i, N, noise_r);
+			#pragma omp for
+			for (size_t en_i=0; en_i<ensemble_size; en_i++) {
+				// Provide a pointer to the noise vector and noise residual used by
+				// this ensemble member
+				double* const noise_i = &noise[N*en_i];
+				double* const noise_r = &noise_res[N*en_i];
+				// Initialize input signal as data + noise
+				array_add_to(res, noise_i, N, w->x);
+				// Sift to extract first EMD mode
+				_sift(w->x, w->emd_w->sift_w, S_number, num_siftings);
+				// Sum to output vector
+				get_lock(output_lock);
+				array_add(w->x, N, imf);
+				release_lock(output_lock);
+				// Extract next EMD mode of the noise. This is used as the noise for
+				// the next mode extracted from the data
+				if (imf_i == 0) {
+					array_copy(noise_i, N, noise_r);
+				}
+				else {
+					array_copy(noise_r, N, noise_i);
+				}
+				_sift(noise_i, w->emd_w->sift_w, S_number, num_siftings);
+				array_sub(noise_i, N, noise_res);
 			}
-			else {
-				array_copy(noise_r, N, noise_i);
-			}
-			_sift(noise_i, w->emd_w->sift_w, S_number, num_siftings);
-			array_sub(noise_i, N, noise_res);
-		}
+		} // Parallel section ends
 		// Divide with ensemble size to get the average
 		array_mult(imf, N, one_per_ensemble_size);
 		// Subtract this IMF from the previous residual to form the new one
