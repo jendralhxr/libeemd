@@ -311,10 +311,10 @@ void ceemdan(double const* restrict input, size_t N, double* restrict output,
 	lock* output_lock = malloc(sizeof(lock));
 	init_lock(output_lock);
 	// The threads also share the same precomputed noise
-	double* noise = malloc(ensemble_size*N*sizeof(double));
+	double* noises = malloc(ensemble_size*N*sizeof(double));
 	// Since we need to decompose this noise by EMD, we also need arrays for storing
 	// the residuals
-	double* noise_res = malloc(ensemble_size*N*sizeof(double));
+	double* noise_residuals = malloc(ensemble_size*N*sizeof(double));
 	// Don't start unnecessary threads if the ensemble is small
 	#ifdef _OPENMP
 	if (omp_get_num_threads() > (int)ensemble_size) {
@@ -348,7 +348,7 @@ void ceemdan(double const* restrict input, size_t N, double* restrict output,
 		#pragma omp for
 		for (size_t en_i=0; en_i<ensemble_size; en_i++) {
 			for (size_t j=0; j<N; j++) {
-				noise[N*en_i+j] = gsl_ran_gaussian(w->r, noise_sigma);
+				noises[N*en_i+j] = gsl_ran_gaussian(w->r, noise_sigma);
 			}
 		}
 	} // Return to sequental mode
@@ -370,10 +370,10 @@ void ceemdan(double const* restrict input, size_t N, double* restrict output,
 			for (size_t en_i=0; en_i<ensemble_size; en_i++) {
 				// Provide a pointer to the noise vector and noise residual used by
 				// this ensemble member
-				double* const noise_i = &noise[N*en_i];
-				double* const noise_r = &noise_res[N*en_i];
+				double* const noise = &noises[N*en_i];
+				double* const noise_residual = &noise_residuals[N*en_i];
 				// Initialize input signal as data + noise
-				array_add_to(res, noise_i, N, w->x);
+				array_add_to(res, noise, N, w->x);
 				// Sift to extract first EMD mode
 				_sift(w->x, w->emd_w->sift_w, S_number, num_siftings);
 				// Sum to output vector
@@ -383,13 +383,13 @@ void ceemdan(double const* restrict input, size_t N, double* restrict output,
 				// Extract next EMD mode of the noise. This is used as the noise for
 				// the next mode extracted from the data
 				if (imf_i == 0) {
-					array_copy(noise_i, N, noise_r);
+					array_copy(noise, N, noise_residual);
 				}
 				else {
-					array_copy(noise_r, N, noise_i);
+					array_copy(noise_residual, N, noise);
 				}
-				_sift(noise_i, w->emd_w->sift_w, S_number, num_siftings);
-				array_sub(noise_i, N, noise_res);
+				_sift(noise, w->emd_w->sift_w, S_number, num_siftings);
+				array_sub(noise, N, noise_residual);
 			}
 		} // Parallel section ends
 		// Divide with ensemble size to get the average
@@ -407,8 +407,8 @@ void ceemdan(double const* restrict input, size_t N, double* restrict output,
 	}
 	free(ws); ws = NULL;
 	free(res); res = NULL;
-	free(noise_res); noise_res = NULL;
-	free(noise); noise = NULL;
+	free(noise_residuals); noise_residuals = NULL;
+	free(noises); noises = NULL;
 	destroy_lock(output_lock);
 	free(output_lock); output_lock = NULL;
 }
