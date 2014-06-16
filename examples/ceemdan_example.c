@@ -27,7 +27,7 @@ const double pi = M_PI;
 const size_t ensemble_size = 500;
 const unsigned int S_number = 4;
 const unsigned int num_siftings = 0;
-const double noise_strength = 0.2;
+const double noise_strength = 0.02;
 const unsigned long int rng_seed = 0;
 const char outfile[] = "ceemdan_example.out";
 
