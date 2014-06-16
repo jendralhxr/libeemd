@@ -37,7 +37,7 @@ int main(void) {
 	// As an example decompose a Dirac signal as in the original CEEMDAN paper
 	double* inp = malloc(N*sizeof(double));
 	memset(inp, 0x00, N*sizeof(double));
-	inp[512/2] = 1.0;
+	inp[N/2] = 1.0;
 	// Allocate memory for output data
 	size_t M = emd_num_imfs(N);
 	double* outp = malloc(M*N*sizeof(double));
