@@ -47,6 +47,16 @@ _libeemd.eemd.argtypes = [ndpointer(float, flags=('C', 'A')),
                           ctypes.c_uint,
                           ctypes.c_uint,
                           ctypes.c_ulong]
+# Call signature for ceemdan() (exactly the same as eemd)
+_libeemd.ceemdan.restype = None
+_libeemd.ceemdan.argtypes = [ndpointer(float, flags=('C', 'A')),
+                          ctypes.c_size_t,
+                          ndpointer(float, flags=('C', 'A', 'W')),
+                          ctypes.c_uint,
+                          ctypes.c_double,
+                          ctypes.c_uint,
+                          ctypes.c_uint,
+                          ctypes.c_ulong]
 # Call signature for emd_find_extrema()
 _libeemd.emd_find_extrema.restype = ctypes.c_bool
 _libeemd.emd_find_extrema.argtypes = [ndpointer(float, flags=('C', 'A')),
@@ -154,6 +164,52 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
     outbuffer = numpy.zeros(M*N, dtype=float, order='C')
     # Call C routine
     _libeemd.eemd(inp, N, outbuffer, ensemble_size, noise_strength, S_number,
+                  num_siftings, rng_seed)
+    # Reshape outbuffer to a proper 2D array and return
+    outbuffer = numpy.reshape(outbuffer, (M, N))
+    return outbuffer
+
+def ceemdan(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
+        num_siftings=0, rng_seed=0):
+    """
+    Decompose input data array `inp` to Intrinsic Mode Functions (IMFs) with the
+    Complete Ensemble Empirical Mode Decomposition with Adaptive Noise
+    algorithm [1]_, a variant of EEMD. For description of the input parameters
+    and output, please see documentation of `eemd`.
+
+
+    References
+    ----------
+    .. [1] M. Torres et al, "A Complete Ensemble Empirical Mode Decomposition
+       with Adaptive Noise" IEEE Int. Conf. on Acoust., Speech and Signal Proc.
+       ICASSP-11, (2011) 4144–4147
+
+
+    See also
+    --------
+    eemd : The regular Ensemble Empirical Mode Decomposition routine.
+    emd_num_imfs : The number of IMFs returned for a given input length.
+    """
+    # Perform some checks on input arguments first
+    if (ensemble_size < 1):
+        raise ValueError("ensemble_size passed to ceemdan must be >= 1")
+    if (S_number < 0):
+        raise ValueError("S_number passed to ceemdan must be non-negative")
+    if (num_siftings < 0):
+        raise ValueError("num_siftings passed to ceemdan must be non-negative")
+    if (S_number == 0 and num_siftings == 0):
+        raise ValueError("One of S_number or num_siftings must be positive")
+    if (noise_strength < 0):
+        raise ValueError("noise_strength passed to ceemdan must be non-negative")
+    # Initialize numpy arrays
+    inp = numpy.require(inp, float, ('C', 'A'))
+    if (inp.ndim != 1):
+        raise ValueError("input data passed to eemd must be a 1D array")
+    N = inp.size
+    M = emd_num_imfs(N)
+    outbuffer = numpy.zeros(M*N, dtype=float, order='C')
+    # Call C routine
+    _libeemd.ceemdan(inp, N, outbuffer, ensemble_size, noise_strength, S_number,
                   num_siftings, rng_seed)
     # Reshape outbuffer to a proper 2D array and return
     outbuffer = numpy.reshape(outbuffer, (M, N))

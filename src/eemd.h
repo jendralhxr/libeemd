@@ -63,6 +63,17 @@ void eemd(double const* restrict input, size_t N, double* restrict output,
 		unsigned int ensemble_size, double noise_strength, unsigned int
 		S_number, unsigned int num_siftings, unsigned long int rng_seed);
 
+// A complete variant of EEMD as described in:
+//   M. Torres et al,
+//   A Complete Ensemble Empirical Mode Decomposition with Adaptive Noise
+//   IEEE Int. Conf. on Acoust., Speech and Signal Proc. ICASSP-11,
+//   (2011) 4144-4147
+//
+// Parameters are identical to routine eemd
+void ceemdan(double const* restrict input, size_t N, double* restrict output,
+		unsigned int ensemble_size, double noise_strength, unsigned int
+		S_number, unsigned int num_siftings, unsigned long int rng_seed);
+
 // A method for finding the local minima and maxima from input data specified
 // with parameters x and N. The memory for storing the coordinates of the
 // extrema and their number are passed as the rest of the parameters. The
