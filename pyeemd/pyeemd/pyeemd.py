@@ -176,7 +176,7 @@ def ceemdan(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
     Decompose input data array `inp` to Intrinsic Mode Functions (IMFs) with the
     Complete Ensemble Empirical Mode Decomposition with Adaptive Noise (CEEMDAN)
     algorithm [1]_, a variant of EEMD. For description of the input parameters
-    and output, please see documentation of :func:`eemd`.
+    and output, please see documentation of :func:`~pyeemd.eemd`.
 
 
     References
@@ -220,7 +220,7 @@ def ceemdan(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
 def emd(inp, S_number=0, num_siftings=0):
     """
     A convenience function for performing EMD (not EEMD). This simply calls
-    function eemd with ``ensemble_size=1`` and ``noise_strength=0``.
+    function :func:`~pyeemd.eemd` with ``ensemble_size=1`` and ``noise_strength=0``.
     """
     return eemd(inp, ensemble_size=1, noise_strength=0, S_number=S_number,
                 num_siftings=num_siftings)
@@ -316,7 +316,7 @@ def emd_evaluate_spline(x, y):
     As you can see from the definition, this method is tuned to work only in
     the case needed by EMD. This method is made available mainly for
     visualization and unit testing purposes. Better general purpose spline
-    methods exist already in ``scipy.interpolate``.
+    methods exist already in :mod:`scipy.interpolate`.
 
     See also
     --------
