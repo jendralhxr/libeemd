@@ -86,11 +86,11 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
     Decompose input data array `inp` to Intrinsic Mode Functions (IMFs) with the
     Ensemble Empirical Mode Decomposition algorithm [1]_.
 
-    and the relative magnitude of the added noise are given by parameters
-    ensemble_size and noise_strength, respectively.  The stopping criterion for
-    the decomposition is given by either a S-number or an absolute number of
-    siftings. In the case that both are positive numbers, the sifting ends when
-    either of the conditions is fulfilled.
+    The size of the ensemble and the relative magnitude of the added noise are
+    given by parameters `ensemble_size` and `noise_strength`, respectively.  The
+    stopping criterion for the decomposition is given by either a S-number or
+    an absolute number of siftings. In the case that both are positive numbers,
+    the sifting ends when either of the conditions is fulfilled.
 
     Parameters
     ----------
@@ -106,9 +106,9 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
         signal.
 
     S_number : int, optional
-        Use the S-number stopping criterion [2]_ for the EMD procedure with the given values of S.
+        Use the S-number stopping criterion [2]_ for the EMD procedure with the given values of `S`.
         That is, iterate until the number of extrema and zero crossings in the
-        signal differ at most by one, and stay the same for S consecutive
+        signal differ at most by one, and stay the same for `S` consecutive
         iterations. Typical values are in the range `3 .. 8`. If `S_number` is
         zero, this stopping criterion is ignored.
 
@@ -142,6 +142,7 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
 
     See also
     --------
+    emd : The regular Empirical Mode Decomposition routine.
     emd_num_imfs : The number of IMFs returned for a given input length.
     """
     # Perform some checks on input arguments first
@@ -173,9 +174,9 @@ def ceemdan(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
         num_siftings=0, rng_seed=0):
     """
     Decompose input data array `inp` to Intrinsic Mode Functions (IMFs) with the
-    Complete Ensemble Empirical Mode Decomposition with Adaptive Noise
+    Complete Ensemble Empirical Mode Decomposition with Adaptive Noise (CEEMDAN)
     algorithm [1]_, a variant of EEMD. For description of the input parameters
-    and output, please see documentation of `eemd`.
+    and output, please see documentation of :func:`eemd`.
 
 
     References

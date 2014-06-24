@@ -34,7 +34,8 @@ def plot_imfs(imfs, new_figs=True, plot_splines=True):
     Parameters
     ----------
     imfs : ndarray
-        The IMFs as returned by :py:func:`pyeemd.pyeemd.emd` or :py:func:`pyeemd.pyeemd.eemd`.
+        The IMFs as returned by :func:`pyeemd.pyeemd.emd`,
+        :func:`pyeemd.pyeemd.eemd`, or :func:`pyeemd.pyeemd.ceemdan`.
 
     new_figs : bool, optional
         Whether to plot the IMFs in separate figures.
