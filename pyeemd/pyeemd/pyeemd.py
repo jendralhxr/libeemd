@@ -4,17 +4,17 @@
 # Copyright 2013 Perttu Luukko
 
 # This file is part of libeemd.
-# 
+#
 # libeemd is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # libeemd is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with libeemd.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -91,12 +91,12 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
     the decomposition is given by either a S-number or an absolute number of
     siftings. In the case that both are positive numbers, the sifting ends when
     either of the conditions is fulfilled.
-    
+
     Parameters
     ----------
     inp : array_like, shape (N,)
         The input signal to decompose. Has to be a one-dimensional array-like object.
-        
+
     ensemble_size : int, optional
         Number of copies of the input signal to use as the ensemble.
 
