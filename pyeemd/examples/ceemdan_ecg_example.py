@@ -19,7 +19,7 @@
 
 from pyeemd import ceemdan
 from pyeemd.utils import plot_imfs
-from pylab import plot, show, title
+from matplotlib.pyplot import plot, show, title
 from numpy import loadtxt
 
 ecg = loadtxt("ecg.csv", delimiter=',')

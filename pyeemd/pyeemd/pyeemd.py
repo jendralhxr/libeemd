@@ -4,17 +4,17 @@
 # Copyright 2013 Perttu Luukko
 
 # This file is part of libeemd.
-# 
+#
 # libeemd is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # libeemd is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with libeemd.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -86,17 +86,17 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
     Decompose input data array `inp` to Intrinsic Mode Functions (IMFs) with the
     Ensemble Empirical Mode Decomposition algorithm [1]_.
 
-    and the relative magnitude of the added noise are given by parameters
-    ensemble_size and noise_strength, respectively.  The stopping criterion for
-    the decomposition is given by either a S-number or an absolute number of
-    siftings. In the case that both are positive numbers, the sifting ends when
-    either of the conditions is fulfilled.
-    
+    The size of the ensemble and the relative magnitude of the added noise are
+    given by parameters `ensemble_size` and `noise_strength`, respectively.  The
+    stopping criterion for the decomposition is given by either a S-number or
+    an absolute number of siftings. In the case that both are positive numbers,
+    the sifting ends when either of the conditions is fulfilled.
+
     Parameters
     ----------
     inp : array_like, shape (N,)
         The input signal to decompose. Has to be a one-dimensional array-like object.
-        
+
     ensemble_size : int, optional
         Number of copies of the input signal to use as the ensemble.
 
@@ -106,9 +106,9 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
         signal.
 
     S_number : int, optional
-        Use the S-number stopping criterion [2]_ for the EMD procedure with the given values of S.
+        Use the S-number stopping criterion [2]_ for the EMD procedure with the given values of `S`.
         That is, iterate until the number of extrema and zero crossings in the
-        signal differ at most by one, and stay the same for S consecutive
+        signal differ at most by one, and stay the same for `S` consecutive
         iterations. Typical values are in the range `3 .. 8`. If `S_number` is
         zero, this stopping criterion is ignored.
 
@@ -142,6 +142,7 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
 
     See also
     --------
+    emd : The regular Empirical Mode Decomposition routine.
     emd_num_imfs : The number of IMFs returned for a given input length.
     """
     # Perform some checks on input arguments first
@@ -173,9 +174,9 @@ def ceemdan(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
         num_siftings=0, rng_seed=0):
     """
     Decompose input data array `inp` to Intrinsic Mode Functions (IMFs) with the
-    Complete Ensemble Empirical Mode Decomposition with Adaptive Noise
+    Complete Ensemble Empirical Mode Decomposition with Adaptive Noise (CEEMDAN)
     algorithm [1]_, a variant of EEMD. For description of the input parameters
-    and output, please see documentation of `eemd`.
+    and output, please see documentation of :func:`~pyeemd.eemd`.
 
 
     References
@@ -219,7 +220,7 @@ def ceemdan(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
 def emd(inp, S_number=0, num_siftings=0):
     """
     A convenience function for performing EMD (not EEMD). This simply calls
-    function eemd with ``ensemble_size=1`` and ``noise_strength=0``.
+    function :func:`~pyeemd.eemd` with ``ensemble_size=1`` and ``noise_strength=0``.
     """
     return eemd(inp, ensemble_size=1, noise_strength=0, S_number=S_number,
                 num_siftings=num_siftings)
@@ -315,7 +316,7 @@ def emd_evaluate_spline(x, y):
     As you can see from the definition, this method is tuned to work only in
     the case needed by EMD. This method is made available mainly for
     visualization and unit testing purposes. Better general purpose spline
-    methods exist already in ``scipy.interpolate``.
+    methods exist already in :mod:`scipy.interpolate`.
 
     See also
     --------
