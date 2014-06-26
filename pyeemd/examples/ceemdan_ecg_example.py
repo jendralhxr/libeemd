@@ -22,9 +22,18 @@ from pyeemd.utils import plot_imfs
 from matplotlib.pyplot import plot, show, title
 from numpy import loadtxt
 
+# Load example ECG signal
+# The data is from the MIT-BIH Normal Sinus Rhythm Database, record 16265, ECG1
+# More data can be downloaded from http://www.physionet.org/cgi-bin/atm/ATM
 ecg = loadtxt("ecg.csv", delimiter=',')
+
+# Plot the original data using Matplotlib
 title("Original signal")
 plot(ecg)
+
+# Calculate IMFs and the residual by CEEMDAN using a S-number of 4
 imfs = ceemdan(ecg, S_number=4)
+
+# Plot the results using the plot_imfs helper function from pyeemd.utils
 plot_imfs(imfs, plot_splines=False)
 show()
