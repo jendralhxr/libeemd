@@ -16,8 +16,10 @@ Input data to these routines can be any kind of Python sequence that
 data will be a 2D :mod:`numpy` array, where each row of the array represents a
 single *intrinsic mode function* (IMF).
 
-For example, suppose we have a set of interesting data in comma separated value
-(CSV) format stored in file ``ecg.csv``. This data can be read into Python in
+As an example, the `examples` subfolder of `pyeemd` contains a file
+``ecg.csv``, which contains ECG (electrocardiogram) data from the `MIT-BIH
+Normal Sinus Rhythm Database <http://www.physionet.org/cgi-bin/atm/ATM>`_. The
+data is in CSV (comma separated value) format, which can be read into Python in
 many ways, one of which is using :func:`numpy.loadtxt` using the appropriate
 delimiter::
 
@@ -26,7 +28,16 @@ delimiter::
     ecg = loadtxt("ecg.csv", delimiter=',')
 
 Now we have the data in a :mod:`numpy` array `ecg`. We can quickly plot what
-the data looks like using :mod:`matplotlib.pyplot`::
+the data looks like using :mod:`matplotlib.pyplot`.
+
+.. _orig-data-figure:
+
+.. figure:: /images/orig_data.png
+    :scale: 60 %
+
+    Original ECG signal as plotted by :mod:`matplotlib.pyplot`.
+
+.. code:: python
 
     from matplotlib.pyplot import plot, show, title
 
@@ -46,8 +57,19 @@ S-number of 4. The other choice would be to set a maximum number of siftings
 
 Now the rows of the 2D array `imfs` are the IMFs the original signal decomposes
 to when applying CEEMDAN. We can plot these IMFs using :mod:`matplotlib.pyplot`
-as before, but `pyeemd` also comes with an utility function for easily plotting
-the IMFs (using :mod:`matplotlib.pyplot`) in separate figures::
+as before, but `pyeemd` also comes with an utility function
+:func:`~utils.plot_imfs` for easily plotting the IMFs (using
+:mod:`matplotlib.pyplot`) in separate figures.
+
+.. _imf7-figure:
+
+.. figure:: /images/imf7.png
+    :scale: 60 %
+
+    IMF 7 extracted from ECG data with :func:`~pyeemd.ceemdan` and plotted with
+    :func:`~utils.plot_imfs`.
+
+.. code:: python
 
     from pyeemd.utils import plot_imfs
 
