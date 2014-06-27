@@ -91,5 +91,4 @@ subdirectory.
 
 The Python interface to `libeemd` is contained in the subdirectory `pyeemd`. It
 has its own documentation so head there if you want to know more about it.
-You can also head straight to [Read the
-Docs](http://pyeemd.readthedocs.org/en/latest/).
+You can also head straight to [Read the Docs](http://pyeemd.readthedocs.org/).
