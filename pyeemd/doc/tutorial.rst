@@ -33,7 +33,6 @@ the data looks like using :mod:`matplotlib.pyplot`.
 .. _orig-data-figure:
 
 .. figure:: /images/orig_data.png
-    :scale: 60 %
 
     Original ECG signal as plotted by :mod:`matplotlib.pyplot`.
 
@@ -64,7 +63,6 @@ as before, but `pyeemd` also comes with an utility function
 .. _imf7-figure:
 
 .. figure:: /images/imf7.png
-    :scale: 60 %
 
     IMF 7 extracted from ECG data with :func:`~pyeemd.ceemdan` and plotted with
     :func:`~utils.plot_imfs`.
