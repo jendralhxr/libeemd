@@ -56,10 +56,23 @@
 // standard deviation, respectively. These are followed by the parameters for
 // the stopping criterion. The stopping parameter can be defined by a S-number
 // (see the article for details) or a fixed number of siftings. If both are
-// specified, the sifting ends when either criterion is fulfilled.
+// specified, the sifting ends when either criterion is fulfilled. The final
+// parameter is the seed given to the random number generator. A value of zero
+// denotes a RNG-specific default value.
 void eemd(double const* restrict input, size_t N, double* restrict output,
 		unsigned int ensemble_size, double noise_strength, unsigned int
-		S_number, unsigned int num_siftings);
+		S_number, unsigned int num_siftings, unsigned long int rng_seed);
+
+// A complete variant of EEMD as described in:
+//   M. Torres et al,
+//   A Complete Ensemble Empirical Mode Decomposition with Adaptive Noise
+//   IEEE Int. Conf. on Acoust., Speech and Signal Proc. ICASSP-11,
+//   (2011) 4144-4147
+//
+// Parameters are identical to routine eemd
+void ceemdan(double const* restrict input, size_t N, double* restrict output,
+		unsigned int ensemble_size, double noise_strength, unsigned int
+		S_number, unsigned int num_siftings, unsigned long int rng_seed);
 
 // A method for finding the local minima and maxima from input data specified
 // with parameters x and N. The memory for storing the coordinates of the

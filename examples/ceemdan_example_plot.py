@@ -1,5 +1,4 @@
 #!/usr/bin/env python2
-# vim: set fileencoding=utf-8 ts=4 sw=4 lw=79
 
 # Copyright 2013 Perttu Luukko
 
@@ -18,4 +17,17 @@
 # You should have received a copy of the GNU General Public License
 # along with libeemd.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyeemd import eemd, ceemdan, emd, emd_find_extrema, emd_num_imfs, emd_evaluate_spline
+from numpy import loadtxt
+from pylab import plot, show
+from pyeemd.utils import plot_imfs
+
+def main():
+    data = loadtxt("ceemdan_example.out")
+    orig = data[0]
+    imfs = data[1:]
+    plot(orig, label="Original data")
+    plot_imfs(imfs)
+    show()
+
+if __name__ == "__main__":
+    main()

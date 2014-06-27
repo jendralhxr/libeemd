@@ -24,31 +24,25 @@ const double pi = M_PI;
 
 #include "eemd.h"
 
-const size_t ensemble_size = 250;
+const size_t ensemble_size = 500;
 const unsigned int S_number = 4;
 const unsigned int num_siftings = 0;
-const double noise_strength = 0.2;
+const double noise_strength = 0.02;
 const unsigned long int rng_seed = 0;
-const char outfile[] = "eemd_example.out";
+const char outfile[] = "ceemdan_example.out";
 
-// An example signal to decompose
-const size_t N = 1024;
-static inline double input_signal(double x) {
-	const double omega = 2*pi/(N-1);
-	return sin(17*omega*x)+0.5*(1.0-exp(-0.002*x))*sin(51*omega*x+1);
-}
+const size_t N = 512;
 
 int main(void) {
-	// Define input data
+	// As an example decompose a Dirac signal as in the original CEEMDAN paper
 	double* inp = malloc(N*sizeof(double));
-	for (size_t i=0; i<N; i++) {
-		inp[i] = input_signal((double)i);
-	}
+	memset(inp, 0x00, N*sizeof(double));
+	inp[N/2] = 1.0;
 	// Allocate memory for output data
 	size_t M = emd_num_imfs(N);
 	double* outp = malloc(M*N*sizeof(double));
-	// Run eemd
-	eemd(inp, N, outp, ensemble_size, noise_strength, S_number, num_siftings, rng_seed);
+	// Run CEEMDAN
+	ceemdan(inp, N, outp, ensemble_size, noise_strength, S_number, num_siftings, rng_seed);
 	// Write output to file
 	FILE* fp = fopen(outfile, "w");
 	for (size_t j=0; j<N; j++) {

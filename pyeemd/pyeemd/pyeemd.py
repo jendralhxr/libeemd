@@ -4,17 +4,17 @@
 # Copyright 2013 Perttu Luukko
 
 # This file is part of libeemd.
-# 
+#
 # libeemd is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # libeemd is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with libeemd.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -45,7 +45,18 @@ _libeemd.eemd.argtypes = [ndpointer(float, flags=('C', 'A')),
                           ctypes.c_uint,
                           ctypes.c_double,
                           ctypes.c_uint,
-                          ctypes.c_uint]
+                          ctypes.c_uint,
+                          ctypes.c_ulong]
+# Call signature for ceemdan() (exactly the same as eemd)
+_libeemd.ceemdan.restype = None
+_libeemd.ceemdan.argtypes = [ndpointer(float, flags=('C', 'A')),
+                          ctypes.c_size_t,
+                          ndpointer(float, flags=('C', 'A', 'W')),
+                          ctypes.c_uint,
+                          ctypes.c_double,
+                          ctypes.c_uint,
+                          ctypes.c_uint,
+                          ctypes.c_ulong]
 # Call signature for emd_find_extrema()
 _libeemd.emd_find_extrema.restype = ctypes.c_bool
 _libeemd.emd_find_extrema.argtypes = [ndpointer(float, flags=('C', 'A')),
@@ -70,22 +81,22 @@ _libeemd.emd_evaluate_spline.argtypes = [ndpointer(float, flags=('C', 'A')),
 
 
 def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
-         num_siftings=0):
+         num_siftings=0, rng_seed=0):
     """
     Decompose input data array `inp` to Intrinsic Mode Functions (IMFs) with the
     Ensemble Empirical Mode Decomposition algorithm [1]_.
 
-    and the relative magnitude of the added noise are given by parameters
-    ensemble_size and noise_strength, respectively.  The stopping criterion for
-    the decomposition is given by either a S-number or an absolute number of
-    siftings. In the case that both are positive numbers, the sifting ends when
-    either of the conditions is fulfilled.
-    
+    The size of the ensemble and the relative magnitude of the added noise are
+    given by parameters `ensemble_size` and `noise_strength`, respectively.  The
+    stopping criterion for the decomposition is given by either a S-number or
+    an absolute number of siftings. In the case that both are positive numbers,
+    the sifting ends when either of the conditions is fulfilled.
+
     Parameters
     ----------
     inp : array_like, shape (N,)
         The input signal to decompose. Has to be a one-dimensional array-like object.
-        
+
     ensemble_size : int, optional
         Number of copies of the input signal to use as the ensemble.
 
@@ -95,15 +106,19 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
         signal.
 
     S_number : int, optional
-        Use the S-number stopping criterion [2]_ for the EMD procedure with the given values of S.
+        Use the S-number stopping criterion [2]_ for the EMD procedure with the given values of `S`.
         That is, iterate until the number of extrema and zero crossings in the
-        signal differ at most by one, and stay the same for S consecutive
+        signal differ at most by one, and stay the same for `S` consecutive
         iterations. Typical values are in the range `3 .. 8`. If `S_number` is
         zero, this stopping criterion is ignored.
 
     num_siftings : int, optional
         Use a maximum number of siftings as a stopping criterion. If
         `num_siftings` is zero, this stopping criterion is ignored.
+
+    rng_seed : int, optional
+        A seed for the random number generator. A value of zero denotes
+        an implementation-defined default value.
 
     Notes
     ------
@@ -127,6 +142,7 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
 
     See also
     --------
+    emd : The regular Empirical Mode Decomposition routine.
     emd_num_imfs : The number of IMFs returned for a given input length.
     """
     # Perform some checks on input arguments first
@@ -149,7 +165,53 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
     outbuffer = numpy.zeros(M*N, dtype=float, order='C')
     # Call C routine
     _libeemd.eemd(inp, N, outbuffer, ensemble_size, noise_strength, S_number,
-                  num_siftings)
+                  num_siftings, rng_seed)
+    # Reshape outbuffer to a proper 2D array and return
+    outbuffer = numpy.reshape(outbuffer, (M, N))
+    return outbuffer
+
+def ceemdan(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
+        num_siftings=0, rng_seed=0):
+    """
+    Decompose input data array `inp` to Intrinsic Mode Functions (IMFs) with the
+    Complete Ensemble Empirical Mode Decomposition with Adaptive Noise (CEEMDAN)
+    algorithm [1]_, a variant of EEMD. For description of the input parameters
+    and output, please see documentation of :func:`~pyeemd.eemd`.
+
+
+    References
+    ----------
+    .. [1] M. Torres et al, "A Complete Ensemble Empirical Mode Decomposition
+       with Adaptive Noise" IEEE Int. Conf. on Acoust., Speech and Signal Proc.
+       ICASSP-11, (2011) 4144–4147
+
+
+    See also
+    --------
+    eemd : The regular Ensemble Empirical Mode Decomposition routine.
+    emd_num_imfs : The number of IMFs returned for a given input length.
+    """
+    # Perform some checks on input arguments first
+    if (ensemble_size < 1):
+        raise ValueError("ensemble_size passed to ceemdan must be >= 1")
+    if (S_number < 0):
+        raise ValueError("S_number passed to ceemdan must be non-negative")
+    if (num_siftings < 0):
+        raise ValueError("num_siftings passed to ceemdan must be non-negative")
+    if (S_number == 0 and num_siftings == 0):
+        raise ValueError("One of S_number or num_siftings must be positive")
+    if (noise_strength < 0):
+        raise ValueError("noise_strength passed to ceemdan must be non-negative")
+    # Initialize numpy arrays
+    inp = numpy.require(inp, float, ('C', 'A'))
+    if (inp.ndim != 1):
+        raise ValueError("input data passed to eemd must be a 1D array")
+    N = inp.size
+    M = emd_num_imfs(N)
+    outbuffer = numpy.zeros(M*N, dtype=float, order='C')
+    # Call C routine
+    _libeemd.ceemdan(inp, N, outbuffer, ensemble_size, noise_strength, S_number,
+                  num_siftings, rng_seed)
     # Reshape outbuffer to a proper 2D array and return
     outbuffer = numpy.reshape(outbuffer, (M, N))
     return outbuffer
@@ -158,7 +220,7 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
 def emd(inp, S_number=0, num_siftings=0):
     """
     A convenience function for performing EMD (not EEMD). This simply calls
-    function eemd with ``ensemble_size=1`` and ``noise_strength=0``.
+    function :func:`~pyeemd.eemd` with ``ensemble_size=1`` and ``noise_strength=0``.
     """
     return eemd(inp, ensemble_size=1, noise_strength=0, S_number=S_number,
                 num_siftings=num_siftings)
@@ -254,7 +316,7 @@ def emd_evaluate_spline(x, y):
     As you can see from the definition, this method is tuned to work only in
     the case needed by EMD. This method is made available mainly for
     visualization and unit testing purposes. Better general purpose spline
-    methods exist already in ``scipy.interpolate``.
+    methods exist already in :mod:`scipy.interpolate`.
 
     See also
     --------

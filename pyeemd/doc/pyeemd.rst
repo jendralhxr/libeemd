@@ -1,22 +1,30 @@
+.. _api-doc:
+
 API documentation
 =================
 
-.. _pyeemd.pyeemd:
-
-Main methods: pyeemd.pyeemd
+Main decomposition routines
 ---------------------------
 
-.. automodule:: pyeemd.pyeemd
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. autofunction:: pyeemd.eemd
 
-.. _pyeemd.utils:
+.. autofunction:: pyeemd.emd
+
+.. autofunction:: pyeemd.ceemdan
+
+Auxiliary routines
+------------------
+
+.. autofunction:: pyeemd.emd_num_imfs
+
+.. autofunction:: pyeemd.emd_find_extrema
+
+.. autofunction:: pyeemd.emd_evaluate_spline
 
 Utility code: pyeemd.utils
 --------------------------
 
-.. automodule:: pyeemd.utils
+.. automodule:: utils
     :members:
     :undoc-members:
     :show-inheritance:

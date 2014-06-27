@@ -48,14 +48,19 @@ inline static void array_add(double const* src, size_t n, double* dest) {
 		dest[i] += src[i];
 }
 
+inline static void array_add_to(double const* src1, double const* src2, size_t n, double* dest) {
+	for (size_t i=0; i<n; i++)
+		dest[i] = src1[i] + src2[i];
+}
+
 inline static void array_sub(double const* src, size_t n, double* dest) {
 	for (size_t i=0; i<n; i++)
 		dest[i] -= src[i];
 }
 
-inline static void array_div(double* dest, size_t n, double val) {
+inline static void array_mult(double* dest, size_t n, double val) {
 	for (size_t i=0; i<n; i++)
-		dest[i] /= val;
+		dest[i] *= val;
 }
 
 // Helper function for extrapolating data at the ends. For a line passing
@@ -66,37 +71,29 @@ inline static double linear_extrapolate(double x0, double y0,
 	return y0 + (y1-y0)*(x-x0)/(x1-x0);
 }
 
-// Define a structure for memory required for each EMD run.
+// In the following part the necessary workspace memory structures for several
+// EMD operations are defined
+
+// For sifting we need arrays for storing the found extrema of the signal, and memory required
+// to form the spline envelopes
 typedef struct {
-	// The RNG
-	gsl_rng* r;
 	// Number of samples in the signal
 	size_t N;
-	// Signal and previous residual for EMD
-	double* x;
-	double* res;
 	// Found extrema
-	double* maxx;
-	double* maxy;
-	double* minx;
-	double* miny;
+	double* restrict maxx;
+	double* restrict maxy;
+	double* restrict minx;
+	double* restrict miny;
 	// Upper and lower envelope spline values
-	double* maxspline;
-	double* minspline;
-	// Extra memory required for spline evaluation.
-	double* spline_workspace;
-	// A pointer for shared locks. This is not initialized by the allocate
-	// function!
-	lock** locks;
-} emd_workspace;
+	double* restrict maxspline;
+	double* restrict minspline;
+	// Extra memory required for spline evaluation
+	double* restrict spline_workspace;
+} sifting_workspace;
 
-emd_workspace* allocate_emd_workspace(size_t N, unsigned long int rng_seed) {
-	emd_workspace* w = malloc(sizeof(emd_workspace));
-	w->r = gsl_rng_alloc(gsl_rng_mt19937);
-	gsl_rng_set(w->r, rng_seed);
+sifting_workspace* allocate_sifting_workspace(size_t N) {
+	sifting_workspace* w = malloc(sizeof(sifting_workspace));
 	w->N = N;
-	w->x = malloc(N*sizeof(double));
-	w->res = malloc(N*sizeof(double));
 	w->maxx = malloc(N*sizeof(double));
 	w->maxy = malloc(N*sizeof(double));
 	w->minx = malloc(N*sizeof(double));
@@ -111,7 +108,7 @@ emd_workspace* allocate_emd_workspace(size_t N, unsigned long int rng_seed) {
 	return w;
 }
 
-void free_emd_workspace(emd_workspace* w) {
+void free_sifting_workspace(sifting_workspace* w) {
 	free(w->spline_workspace); w->spline_workspace = NULL;
 	free(w->minspline); w->minspline = NULL;
 	free(w->maxspline); w->maxspline = NULL;
@@ -119,21 +116,83 @@ void free_emd_workspace(emd_workspace* w) {
 	free(w->minx); w->minx = NULL;
 	free(w->maxy); w->maxy = NULL;
 	free(w->maxx); w->maxx = NULL;
-	free(w->res); w->res = NULL;
-	free(w->x); w->x = NULL;
-	gsl_rng_free(w->r); w->r = NULL;
-	free(w);
+	free(w); w = NULL;
 }
 
-// Helper function used internally for making a single EMD run with a
-// preallocated workspace
-static void _emd(emd_workspace* restrict w, double* restrict output,
+
+// For EMD we need space to do the sifting and somewhere to save the residual from the previous run.
+// We also leave room for an array of locks to protect multi-threaded EMD.
+typedef struct {
+	size_t N;
+	// Previous residual for EMD
+	double* restrict res;
+	// What is needed for sifting
+	sifting_workspace* restrict sift_w;
+	// A pointer for shared locks. These locks are used to make EMD thread-safe
+	// even when several threads run EMD with the same output matrix (we'll do
+	// this in EEMD).
+	lock** locks;
+} emd_workspace;
+
+emd_workspace* allocate_emd_workspace(size_t N) {
+	emd_workspace* w = malloc(sizeof(emd_workspace));
+	w->N = N;
+	w->res = malloc(N*sizeof(double));
+	w->sift_w = allocate_sifting_workspace(N);
+	w->locks = NULL; // The locks are assumed to be allocated and freed independently
+	return w;
+}
+
+void free_emd_workspace(emd_workspace* w) {
+	free_sifting_workspace(w->sift_w);
+	free(w->res); w->res = NULL;
+	free(w); w = NULL;
+}
+
+
+// EEMD needs a random number generator in addition to emd_workspace. We also need a place to store
+// the member of the ensemble (input signal + realization of noise) to be worked on.
+typedef struct {
+	size_t N;
+	// The random number generator
+	gsl_rng* r;
+	// The ensemble member signal
+	double* restrict x;
+	// What is needed for running EMD
+	emd_workspace* restrict emd_w;
+} eemd_workspace;
+
+eemd_workspace* allocate_eemd_workspace(size_t N, unsigned long int rng_seed) {
+	eemd_workspace* w = malloc(sizeof(eemd_workspace));
+	w->N = N;
+	w->r = gsl_rng_alloc(gsl_rng_mt19937);
+	gsl_rng_set(w->r, rng_seed);
+	w->x = malloc(N*sizeof(double));
+	w->emd_w = allocate_emd_workspace(N);
+	return w;
+}
+
+void free_eemd_workspace(eemd_workspace* w) {
+	free_emd_workspace(w->emd_w);
+	free(w->x); w->x = NULL;
+	gsl_rng_free(w->r); w->r = NULL;
+	free(w); w = NULL;
+}
+
+// Forward declaration of a helper function used internally for making a single
+// EMD run with a preallocated workspace
+static void _emd(double* restrict input, emd_workspace* restrict w, double* restrict output,
 		unsigned int S_number, unsigned int num_siftings);
+
+// Forward declaration of a helper function for applying the sifting procedure to
+// input until it is reduced to an IMF according to the stopping criteria given
+// by S_number and num_siftings
+static inline void _sift(double* restrict input, sifting_workspace* restrict w, unsigned int S_number, unsigned int num_siftings);
 
 // Main EEMD decomposition routine definition
 void eemd(double const* restrict input, size_t N, double* restrict output,
 		unsigned int ensemble_size, double noise_strength, unsigned int
-		S_number, unsigned int num_siftings) {
+		S_number, unsigned int num_siftings, unsigned long int rng_seed) {
 	assert(ensemble_size >= 1);
 	assert(noise_strength >= 0);
 	assert(ensemble_size == 1 || noise_strength > 0);
@@ -144,13 +203,12 @@ void eemd(double const* restrict input, size_t N, double* restrict output,
 		return;
 	}
 	const size_t M = emd_num_imfs(N);
-	// Compute standard deviation of input data
-	const double sigma = gsl_stats_sd(input, 1, N);
-	const double noise_sigma = sigma*noise_strength;
+	// The noise standard deviation is noise_strength times the standard deviation of input data
+	const double noise_sigma = (noise_strength != 0)? gsl_stats_sd(input, 1, N)*noise_strength : 0;
 	// Initialize output data to zero
 	memset(output, 0x00, M*N*sizeof(double));
 	// Each thread gets a separate workspace if we are using OpenMP
-	emd_workspace** ws = NULL;
+	eemd_workspace** ws = NULL;
 	// The locks are shared among all threads
 	lock** locks;
 	// Don't start unnecessary threads if the ensemble is small
@@ -176,30 +234,32 @@ void eemd(double const* restrict input, size_t N, double* restrict output,
 		#endif
 		#pragma omp single
 		{
-			ws = malloc(num_threads*sizeof(emd_workspace*));
+			ws = malloc(num_threads*sizeof(eemd_workspace*));
 			locks = malloc(M*sizeof(lock*));
 			for (size_t i=0; i<M; i++) {
 				locks[i] = malloc(sizeof(lock));
 				init_lock(locks[i]);
 			}
 		}
-		ws[thread_id] = allocate_emd_workspace(N, gsl_rng_default_seed+thread_id);
-		emd_workspace* w = ws[thread_id];
-		w->locks = locks;
-		// Loop over all ensemble members, divinding them among the threads
+		// Each thread allocates its own workspace
+		ws[thread_id] = allocate_eemd_workspace(N, rng_seed+thread_id);
+		eemd_workspace* w = ws[thread_id];
+		// All threads share the same array of locks
+		w->emd_w->locks = locks;
+		// Loop over all ensemble members, dividing them among the threads
 		#pragma omp for
 		for (size_t en_i=0; en_i<ensemble_size; en_i++) {
 			// Initialize ensemble member as input data + noise
 			if (noise_strength == 0.0) {
-				array_copy(input, N, w->res);
+				array_copy(input, N, w->x);
 			}
 			else {
 				for (size_t i=0; i<N; i++) {
-					w->res[i] = input[i] + gsl_ran_gaussian(w->r, noise_sigma);
+					w->x[i] = input[i] + gsl_ran_gaussian(w->r, noise_sigma);
 				}
 			}
 			// Extract IMFs with EMD
-			_emd(w, output, S_number, num_siftings);
+			_emd(w->x, w->emd_w, output, S_number, num_siftings);
 			#pragma omp atomic
 			ensemble_counter++;
 			#if EEMD_DEBUG >= 1
@@ -207,7 +267,7 @@ void eemd(double const* restrict input, size_t N, double* restrict output,
 			#endif
 		}
 		// Free resources
-		free_emd_workspace(w);
+		free_eemd_workspace(w);
 		#pragma omp single
 		{
 			free(ws); ws = NULL;
@@ -219,18 +279,147 @@ void eemd(double const* restrict input, size_t N, double* restrict output,
 		}
 	} // End of parallel block
 	// Divide output data by the ensemble size to get the average
-	if (ensemble_size != 1)
-		array_div(output, N*M, ensemble_size);
+	if (ensemble_size != 1) {
+		const double one_per_ensemble_size = 1.0/ensemble_size;
+		array_mult(output, N*M, one_per_ensemble_size);
+	}
+}
+
+// Main CEEMDAN decomposition routine definition
+void ceemdan(double const* restrict input, size_t N, double* restrict output,
+		unsigned int ensemble_size, double noise_strength, unsigned int
+		S_number, unsigned int num_siftings, unsigned long int rng_seed) {
+	assert(ensemble_size >= 1);
+	assert(noise_strength >= 0);
+	assert(ensemble_size == 1 || noise_strength > 0);
+	assert(ensemble_size > 1 || noise_strength == 0);
+	assert(S_number > 0 || num_siftings > 0);
+	// For empty data we have nothing to do
+	if (N == 0) {
+		return;
+	}
+	const size_t M = emd_num_imfs(N);
+	const double one_per_ensemble_size = 1.0/ensemble_size;
+	// The noise standard deviation is noise_strength times the standard deviation of input data
+	const double noise_sigma = (noise_strength != 0)? gsl_stats_sd(input, 1, N)*noise_strength : 0;
+	// Initialize output data to zero
+	memset(output, 0x00, M*N*sizeof(double));
+	// Each thread gets a separate workspace if we are using OpenMP
+	eemd_workspace** ws = NULL;
+	// All threads need to write to the same row of the output matrix
+	// so we need only one shared lock
+	lock* output_lock = malloc(sizeof(lock));
+	init_lock(output_lock);
+	// The threads also share the same precomputed noise
+	double* noises = malloc(ensemble_size*N*sizeof(double));
+	// Since we need to decompose this noise by EMD, we also need arrays for storing
+	// the residuals
+	double* noise_residuals = malloc(ensemble_size*N*sizeof(double));
+	// Don't start unnecessary threads if the ensemble is small
+	#ifdef _OPENMP
+	if (omp_get_num_threads() > (int)ensemble_size) {
+		omp_set_num_threads(ensemble_size);
+	}
+	#endif
+	int num_threads;
+	// The following section is executed in parallel
+	#pragma omp parallel
+	{
+		#ifdef _OPENMP
+		num_threads = omp_get_num_threads();
+		const int thread_id = omp_get_thread_num();
+		#if EEMD_DEBUG >= 1
+		#pragma omp single
+		fprintf(stderr, "Using %d thread(s) with OpenMP.\n", num_threads);
+		#endif
+		#else
+		num_threads = 1;
+		const int thread_id = 0;
+		#endif
+		#pragma omp single
+		{
+			ws = malloc(num_threads*sizeof(eemd_workspace*));
+		}
+		// Each thread allocates its own workspace
+		ws[thread_id] = allocate_eemd_workspace(N, rng_seed+thread_id);
+		eemd_workspace* w = ws[thread_id];
+		// Precompute and store white noise, since for each mode of the data we
+		// need the same mode of the corresponding realization of noise
+		#pragma omp for
+		for (size_t en_i=0; en_i<ensemble_size; en_i++) {
+			for (size_t j=0; j<N; j++) {
+				noises[N*en_i+j] = gsl_ran_gaussian(w->r, noise_sigma);
+			}
+		}
+	} // Return to sequental mode
+	// Allocate memory for the residual shared among all threads
+	double* restrict res = malloc(N*sizeof(double));
+	// For the first iteration the residual is the input signal
+	array_copy(input, N, res);
+	// Each mode is extracted sequentially, but we use parallelization in the inner loop
+	// to loop over ensemble members
+	for (size_t imf_i=0; imf_i<M; imf_i++) {
+		// Provide a pointer to the output vector where this IMF will be stored
+		double* const imf = &output[imf_i*N];
+		// Then we go parallel to compute the different ensemble members
+		#pragma omp parallel
+		{
+			const int thread_id = omp_get_thread_num();
+			eemd_workspace* w = ws[thread_id];
+			#pragma omp for
+			for (size_t en_i=0; en_i<ensemble_size; en_i++) {
+				// Provide a pointer to the noise vector and noise residual used by
+				// this ensemble member
+				double* const noise = &noises[N*en_i];
+				double* const noise_residual = &noise_residuals[N*en_i];
+				// Initialize input signal as data + noise
+				array_add_to(res, noise, N, w->x);
+				// Sift to extract first EMD mode
+				_sift(w->x, w->emd_w->sift_w, S_number, num_siftings);
+				// Sum to output vector
+				get_lock(output_lock);
+				array_add(w->x, N, imf);
+				release_lock(output_lock);
+				// Extract next EMD mode of the noise. This is used as the noise for
+				// the next mode extracted from the data
+				if (imf_i == 0) {
+					array_copy(noise, N, noise_residual);
+				}
+				else {
+					array_copy(noise_residual, N, noise);
+				}
+				_sift(noise, w->emd_w->sift_w, S_number, num_siftings);
+				array_sub(noise, N, noise_residual);
+			}
+		} // Parallel section ends
+		// Divide with ensemble size to get the average
+		array_mult(imf, N, one_per_ensemble_size);
+		// Subtract this IMF from the previous residual to form the new one
+		array_sub(imf, N, res);
+	}
+	// Save final residual
+	get_lock(output_lock);
+	array_add(res, N, output+N*(M-1));
+	release_lock(output_lock);
+	// Free global resources
+	for (int thread_id=0; thread_id<num_threads; thread_id++) {
+		free_eemd_workspace(ws[thread_id]);
+	}
+	free(ws); ws = NULL;
+	free(res); res = NULL;
+	free(noise_residuals); noise_residuals = NULL;
+	free(noises); noises = NULL;
+	destroy_lock(output_lock);
+	free(output_lock); output_lock = NULL;
 }
 
 
-// Helper function for applying the sifting procedure to w->x until it is
+// Helper function for applying the sifting procedure to input until it is
 // reduced to an IMF according to the stopping criteria given by S_number and
 // num_siftings
-static inline void _sift(emd_workspace* restrict w, unsigned int S_number, unsigned int num_siftings) {
+static inline void _sift(double* restrict input, sifting_workspace* restrict w, unsigned int S_number, unsigned int num_siftings) {
 	const size_t N = w->N;
 	// Provide some shorthands to avoid excessive '->' operators
-	double* const x = w->x;
 	double* const maxx = w->maxx;
 	double* const maxy = w->maxy;
 	double* const minx = w->minx;
@@ -249,7 +438,7 @@ static inline void _sift(emd_workspace* restrict w, unsigned int S_number, unsig
 		prev_num_max = num_max;
 		prev_num_min = num_min;
 		// Find extrema
-		const bool all_extrema_good = emd_find_extrema(x, N,
+		const bool all_extrema_good = emd_find_extrema(input, N,
 				maxx, maxy, &num_max, minx, miny, &num_min);
 		// Check if we are finished based on the S-number criteria
 		if (S_number != 0) {
@@ -268,35 +457,43 @@ static inline void _sift(emd_workspace* restrict w, unsigned int S_number, unsig
 		emd_evaluate_spline(minx, miny, num_min, w->minspline, w->spline_workspace);
 		// Subtract envelope mean from the data
 		for (size_t i=0; i<N; i++) {
-			x[i] -= 0.5*(w->maxspline[i] + w->minspline[i]);
+			input[i] -= 0.5*(w->maxspline[i] + w->minspline[i]);
 		}
 	}
 }
 
-// Helper function for extracting all IMFs from w->x using the sifting
-// procedure defined by _sift
-static void _emd(emd_workspace* restrict w, double* restrict output,
+// Helper function for extracting all IMFs from input using the sifting
+// procedure defined by _sift. The contents of the input array are destroyed in
+// the process.
+static void _emd(double* restrict input, emd_workspace* restrict w, double* restrict output,
 		unsigned int S_number, unsigned int num_siftings) {
 	// Provide some shorthands to avoid excessive '->' operators
 	const size_t N = w->N;
-	double* const x = w->x;
 	double* const res = w->res;
 	lock** locks = w->locks;
 	// Compute how many IMFs will be separated
 	const size_t M = emd_num_imfs(N);
-	// Loop over all IMFs to be separated from x
+	// We need to store a copy of the original signal so that once it is
+	// reduced to an IMF we have something to subtract the IMF from to form
+	// the residual for the next iteration
+	array_copy(input, N, res);
+	// Loop over all IMFs to be separated from input
 	for (size_t imf_i=0; imf_i<M-1; imf_i++) {
-		// Store the residual from previous run to x
-		array_copy(res, N, x);
-		// Perform siftings on x until it is an IMF
-		_sift(w, S_number, num_siftings);
-		// Subtract this IMF from the original signal to form the residual for
+		if (imf_i != 0) {
+			// Except for the first iteration, restore the previous residual
+			// and use it as an input
+			array_copy(res, N, input);
+		}
+		// Perform siftings on input until it is an IMF
+		_sift(input, w->sift_w, S_number, num_siftings);
+		// Subtract this IMF from the saved copy to form the residual for
 		// the next round
-		array_sub(x, N, res);
-		// Add results to output. Use locks to ensure other threads are not
-		// writing to the same row of the output matrix at the same time
+		array_sub(input, N, res);
+		// Add the discovered IMF to the output matrix. Use locks to ensure
+		// other threads are not writing to the same row of the output matrix
+		// at the same time
 		get_lock(locks[imf_i]);
-		array_add(x, N, output+N*imf_i);
+		array_add(input, N, output+N*imf_i);
 		release_lock(locks[imf_i]);
 		#if EEMD_DEBUG >= 2
 		fprintf(stderr, "IMF %zd saved after %u siftings.\n", imf_i+1, sift_counter);
