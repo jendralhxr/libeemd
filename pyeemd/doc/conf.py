@@ -271,3 +271,12 @@ intersphinx_mapping = {
     'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
     'matplotlib': ('http://matplotlib.sourceforge.net/', None)
 }
+
+# Provide mock objects for Read the Docs
+on_rtd = (os.environ.get('READTHEDOCS', None) == 'True')
+
+if on_rtd:
+    import mock
+    mock_modules = ['ctypes', 'numpy', 'matplotlib', 'pylab']
+    for mod_name in mock_modules:
+        sys.modules[mod_name] = mock.Mock()
