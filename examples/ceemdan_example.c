@@ -42,7 +42,7 @@ int main(void) {
 	size_t M = emd_num_imfs(N);
 	double* outp = malloc(M*N*sizeof(double));
 	// Run CEEMDAN
-	ceemdan(inp, N, outp, ensemble_size, noise_strength, S_number, num_siftings, rng_seed);
+	ceemdan(inp, N, outp, M, ensemble_size, noise_strength, S_number, num_siftings, rng_seed);
 	// Write output to file
 	FILE* fp = fopen(outfile, "w");
 	for (size_t j=0; j<N; j++) {

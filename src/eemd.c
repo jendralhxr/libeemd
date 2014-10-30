@@ -181,7 +181,8 @@ void free_eemd_workspace(eemd_workspace* w) {
 
 // Forward declaration of a helper function used internally for making a single
 // EMD run with a preallocated workspace
-static void _emd(double* restrict input, emd_workspace* restrict w, double* restrict output,
+static void _emd(double* restrict input, emd_workspace* restrict w,
+		double* restrict output, size_t M,
 		unsigned int S_number, unsigned int num_siftings);
 
 // Forward declaration of a helper function for applying the sifting procedure to
@@ -190,7 +191,8 @@ static void _emd(double* restrict input, emd_workspace* restrict w, double* rest
 static inline void _sift(double* restrict input, sifting_workspace* restrict w, unsigned int S_number, unsigned int num_siftings);
 
 // Main EEMD decomposition routine definition
-void eemd(double const* restrict input, size_t N, double* restrict output,
+void eemd(double const* restrict input, size_t N,
+		double* restrict output, size_t M,
 		unsigned int ensemble_size, double noise_strength, unsigned int
 		S_number, unsigned int num_siftings, unsigned long int rng_seed) {
 	assert(ensemble_size >= 1);
@@ -202,7 +204,9 @@ void eemd(double const* restrict input, size_t N, double* restrict output,
 	if (N == 0) {
 		return;
 	}
-	const size_t M = emd_num_imfs(N);
+	if (M == 0) {
+		M = emd_num_imfs(N);
+	}
 	// The noise standard deviation is noise_strength times the standard deviation of input data
 	const double noise_sigma = (noise_strength != 0)? gsl_stats_sd(input, 1, N)*noise_strength : 0;
 	// Initialize output data to zero
@@ -259,7 +263,7 @@ void eemd(double const* restrict input, size_t N, double* restrict output,
 				}
 			}
 			// Extract IMFs with EMD
-			_emd(w->x, w->emd_w, output, S_number, num_siftings);
+			_emd(w->x, w->emd_w, output, M, S_number, num_siftings);
 			#pragma omp atomic
 			ensemble_counter++;
 			#if EEMD_DEBUG >= 1
@@ -286,7 +290,8 @@ void eemd(double const* restrict input, size_t N, double* restrict output,
 }
 
 // Main CEEMDAN decomposition routine definition
-void ceemdan(double const* restrict input, size_t N, double* restrict output,
+void ceemdan(double const* restrict input, size_t N,
+		double* restrict output, size_t M,
 		unsigned int ensemble_size, double noise_strength, unsigned int
 		S_number, unsigned int num_siftings, unsigned long int rng_seed) {
 	assert(ensemble_size >= 1);
@@ -298,7 +303,14 @@ void ceemdan(double const* restrict input, size_t N, double* restrict output,
 	if (N == 0) {
 		return;
 	}
-	const size_t M = emd_num_imfs(N);
+	// For M == 1 the only "IMF" is the residual
+	if (M == 1) {
+		memcpy(output, input, N*sizeof(double));
+		return;
+	}
+	if (M == 0) {
+		M = emd_num_imfs(N);
+	}
 	const double one_per_ensemble_size = 1.0/ensemble_size;
 	// The noise standard deviation is noise_strength times the standard deviation of input data
 	const double noise_sigma = (noise_strength != 0)? gsl_stats_sd(input, 1, N)*noise_strength : 0;
@@ -465,14 +477,16 @@ static inline void _sift(double* restrict input, sifting_workspace* restrict w, 
 // Helper function for extracting all IMFs from input using the sifting
 // procedure defined by _sift. The contents of the input array are destroyed in
 // the process.
-static void _emd(double* restrict input, emd_workspace* restrict w, double* restrict output,
+static void _emd(double* restrict input, emd_workspace* restrict w,
+		double* restrict output, size_t M,
 		unsigned int S_number, unsigned int num_siftings) {
 	// Provide some shorthands to avoid excessive '->' operators
 	const size_t N = w->N;
 	double* const res = w->res;
 	lock** locks = w->locks;
-	// Compute how many IMFs will be separated
-	const size_t M = emd_num_imfs(N);
+	if (M == 0) {
+		M = emd_num_imfs(N);
+	}
 	// We need to store a copy of the original signal so that once it is
 	// reduced to an IMF we have something to subtract the IMF from to form
 	// the residual for the next iteration

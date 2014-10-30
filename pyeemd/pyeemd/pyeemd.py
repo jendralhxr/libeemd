@@ -42,6 +42,7 @@ _libeemd.eemd.restype = None
 _libeemd.eemd.argtypes = [ndpointer(float, flags=('C', 'A')),
                           ctypes.c_size_t,
                           ndpointer(float, flags=('C', 'A', 'W')),
+                          ctypes.c_size_t,
                           ctypes.c_uint,
                           ctypes.c_double,
                           ctypes.c_uint,
@@ -52,6 +53,7 @@ _libeemd.ceemdan.restype = None
 _libeemd.ceemdan.argtypes = [ndpointer(float, flags=('C', 'A')),
                           ctypes.c_size_t,
                           ndpointer(float, flags=('C', 'A', 'W')),
+                          ctypes.c_size_t,
                           ctypes.c_uint,
                           ctypes.c_double,
                           ctypes.c_uint,
@@ -80,7 +82,7 @@ _libeemd.emd_evaluate_spline.argtypes = [ndpointer(float, flags=('C', 'A')),
                                          ndpointer(float, flags=('C', 'A', 'W'))]
 
 
-def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
+def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
          num_siftings=0, rng_seed=0):
     """
     Decompose input data array `inp` to Intrinsic Mode Functions (IMFs) with the
@@ -96,6 +98,12 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
     ----------
     inp : array_like, shape (N,)
         The input signal to decompose. Has to be a one-dimensional array-like object.
+
+    num_imfs : int, optional
+        Number of IMFs to extract. If set to `None`, a maximum value given by
+        `emd_num_imfs(N)` is used. Note that the residual is also counted in
+        this number, so num_imfs=1 will simply give you the input signal plus
+        noise.
 
     ensemble_size : int, optional
         Number of copies of the input signal to use as the ensemble.
@@ -128,8 +136,8 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
     Returns
     -------
     imfs : ndarray, shape (M, N)
-        A `MxN` array with `M = emd_num_imfs(N)`. The rows of the array are the
-        IMFs of the input signal, with the last row being the final residual.
+        A `MxN` array with `M = num_imfs`. The rows of the array are the IMFs
+        of the input signal, with the last row being the final residual.
 
     References
     ----------
@@ -143,9 +151,14 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
     See also
     --------
     emd : The regular Empirical Mode Decomposition routine.
-    emd_num_imfs : The number of IMFs returned for a given input length.
+    emd_num_imfs : The number of IMFs returned for a given input length `N`
+        unless a specific number is set by `num_imfs`.
     """
     # Perform some checks on input arguments first
+    if (num_imfs is not None and num_imfs < 1):
+        raise ValueError("num_imfs passed to eemd must be >= 1")
+    if (num_imfs is not None and num_imfs > emd_num_imfs(len(inp))):
+        raise ValueError("num_imfs passed to eemd must be <= emd_num_imfs(N)")
     if (ensemble_size < 1):
         raise ValueError("ensemble_size passed to eemd must be >= 1")
     if (S_number < 0):
@@ -161,16 +174,16 @@ def eemd(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
     if (inp.ndim != 1):
         raise ValueError("input data passed to eemd must be a 1D array")
     N = inp.size
-    M = emd_num_imfs(N)
+    M = (num_imfs if num_imfs is not None else emd_num_imfs(N))
     outbuffer = numpy.zeros(M*N, dtype=float, order='C')
     # Call C routine
-    _libeemd.eemd(inp, N, outbuffer, ensemble_size, noise_strength, S_number,
-                  num_siftings, rng_seed)
+    _libeemd.eemd(inp, N, outbuffer, M, ensemble_size, noise_strength,
+            S_number, num_siftings, rng_seed)
     # Reshape outbuffer to a proper 2D array and return
     outbuffer = numpy.reshape(outbuffer, (M, N))
     return outbuffer
 
-def ceemdan(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
+def ceemdan(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
         num_siftings=0, rng_seed=0):
     """
     Decompose input data array `inp` to Intrinsic Mode Functions (IMFs) with the
@@ -192,6 +205,10 @@ def ceemdan(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
     emd_num_imfs : The number of IMFs returned for a given input length.
     """
     # Perform some checks on input arguments first
+    if (num_imfs is not None and num_imfs < 1):
+        raise ValueError("num_imfs passed to eemd must be >= 1")
+    if (num_imfs is not None and num_imfs > emd_num_imfs(len(inp))):
+        raise ValueError("num_imfs passed to eemd must be <= emd_num_imfs(N)")
     if (ensemble_size < 1):
         raise ValueError("ensemble_size passed to ceemdan must be >= 1")
     if (S_number < 0):
@@ -207,23 +224,23 @@ def ceemdan(inp, ensemble_size=250, noise_strength=0.2, S_number=0,
     if (inp.ndim != 1):
         raise ValueError("input data passed to eemd must be a 1D array")
     N = inp.size
-    M = emd_num_imfs(N)
+    M = (num_imfs if num_imfs is not None else emd_num_imfs(N))
     outbuffer = numpy.zeros(M*N, dtype=float, order='C')
     # Call C routine
-    _libeemd.ceemdan(inp, N, outbuffer, ensemble_size, noise_strength, S_number,
+    _libeemd.ceemdan(inp, N, outbuffer, M, ensemble_size, noise_strength, S_number,
                   num_siftings, rng_seed)
     # Reshape outbuffer to a proper 2D array and return
     outbuffer = numpy.reshape(outbuffer, (M, N))
     return outbuffer
 
 
-def emd(inp, S_number=0, num_siftings=0):
+def emd(inp, num_imfs=None, S_number=0, num_siftings=0):
     """
     A convenience function for performing EMD (not EEMD). This simply calls
     function :func:`~pyeemd.eemd` with ``ensemble_size=1`` and ``noise_strength=0``.
     """
-    return eemd(inp, ensemble_size=1, noise_strength=0, S_number=S_number,
-                num_siftings=num_siftings)
+    return eemd(inp, num_imfs, ensemble_size=1, noise_strength=0,
+            S_number=S_number, num_siftings=num_siftings)
 
 
 def emd_find_extrema(x):

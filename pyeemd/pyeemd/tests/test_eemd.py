@@ -60,6 +60,21 @@ def test_invalid_arguments5():
     x = []
     eemd(x)
 
+@raises(ValueError)
+def test_invalid_arguments6():
+    x = []
+    eemd(x, num_imfs="Lots")
+
+@raises(ValueError)
+def test_invalid_arguments7():
+    x = []
+    eemd(x, num_imfs=0)
+
+@raises(ValueError)
+def test_invalid_arguments8():
+    x = []
+    eemd(x, num_imfs=-5)
+
 def test_zeros():
     x = zeros(64)
     imfs = eemd(x, S_number=4, ensemble_size=10)
@@ -94,3 +109,22 @@ def test_rng_seed():
     imfs1 = eemd(x1, S_number=4, num_siftings=100, rng_seed=3141)
     imfs2 = eemd(x2, S_number=4, num_siftings=100, rng_seed=5926)
     assert not allclose(imfs1, imfs2)
+
+def test_num_imfs():
+    N = 64
+    x = normal(0, 1, N)
+    imfs1 = eemd(x, num_imfs=3, S_number=4, num_siftings=100)
+    imfs2 = eemd(x, num_imfs=4, S_number=4, num_siftings=100)
+    assert allclose(imfs1[:2,:], imfs2[:2,:])
+
+def test_num_imfs_output_size():
+    N = 64
+    x = normal(0, 1, N)
+    imfs = eemd(x, num_imfs=3, S_number=4, num_siftings=100)
+    assert imfs.shape[0] == 3
+
+@raises(ValueError)
+def test_num_imfs_too_much():
+    N = 8
+    x = normal(0, 1, N)
+    imfs = eemd(x, num_imfs=100, S_number=4, num_siftings=100)

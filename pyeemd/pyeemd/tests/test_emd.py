@@ -78,3 +78,15 @@ def check_completeness():
     imfs = emd(x, S_number=4, num_siftings=1000)
     imfsum = sum(imfs, axis=0)
     assert allclose(x, imfsum)
+
+def test_num_imfs_output_size():
+    N = 64
+    x = normal(0, 1, N)
+    imfs = emd(x, num_imfs=3, S_number=4, num_siftings=100)
+    assert imfs.shape[0] == 3
+
+def test_num_imfs_just_residual():
+    N = 64
+    x = normal(0, 1, N)
+    imfs = emd(x, num_imfs=1, num_siftings=10)
+    assert all(imfs[-1,:] == x)
