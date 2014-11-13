@@ -39,6 +39,7 @@ static inline double input_signal(double x) {
 }
 
 int main(void) {
+	libeemd_error_code err;
 	// Define input data
 	double* inp = malloc(N*sizeof(double));
 	for (size_t i=0; i<N; i++) {
@@ -48,7 +49,11 @@ int main(void) {
 	size_t M = emd_num_imfs(N);
 	double* outp = malloc(M*N*sizeof(double));
 	// Run eemd
-	eemd(inp, N, outp, ensemble_size, noise_strength, S_number, num_siftings, rng_seed);
+	err = eemd(inp, N, outp, M, ensemble_size, noise_strength, S_number, num_siftings, rng_seed);
+	if (err != EMD_SUCCESS) {
+		emd_report_if_error(err);
+		exit(1);
+	}
 	// Write output to file
 	FILE* fp = fopen(outfile, "w");
 	for (size_t j=0; j<N; j++) {

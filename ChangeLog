@@ -1,0 +1,11 @@
+Notable changes from previous release:
+
+Version 1.2:
+	* Rudimentary error reporting in the C API
+	* Allow setting number of IMFs to compute
+
+Version 1.1:
+	* Implementation of CEEMDAN
+	* Allow setting the RNG seed
+	* Documentation improvements
+	* Minor optimizations

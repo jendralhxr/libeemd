@@ -60,6 +60,21 @@ def test_invalid_arguments5():
     x = []
     ceemdan(x)
 
+@raises(ValueError)
+def test_invalid_arguments6():
+    x = []
+    ceemdan(x, num_imfs="Just a few")
+
+@raises(ValueError)
+def test_invalid_arguments7():
+    x = []
+    ceemdan(x, num_imfs=0)
+
+@raises(ValueError)
+def test_invalid_arguments8():
+    x = []
+    ceemdan(x, num_imfs=-5)
+
 def test_zeros():
     x = zeros(64)
     imfs = ceemdan(x, S_number=4, ensemble_size=10)
@@ -104,3 +119,28 @@ def check_completeness():
     imfs = ceemdan(x, S_number=4, num_siftings=1000)
     imfsum = sum(imfs, axis=0)
     assert allclose(x, imfsum)
+
+def test_num_imfs():
+    N = 64
+    x = normal(0, 1, N)
+    imfs1 = ceemdan(x, num_imfs=3, S_number=4, num_siftings=100)
+    imfs2 = ceemdan(x, num_imfs=4, S_number=4, num_siftings=100)
+    assert allclose(imfs1[:2,:], imfs2[:2,:])
+
+def test_num_imfs_output_size():
+    N = 64
+    x = normal(0, 1, N)
+    imfs = ceemdan(x, num_imfs=3, S_number=4, num_siftings=100)
+    assert imfs.shape[0] == 3
+
+def test_num_imfs_just_residual():
+    N = 64
+    x = normal(0, 1, N)
+    imfs = ceemdan(x, num_imfs=1, S_number=4, num_siftings=100)
+    assert allclose(imfs[-1,:], x)
+
+@raises(ValueError)
+def test_num_imfs_too_much():
+    N = 8
+    x = normal(0, 1, N)
+    imfs = ceemdan(x, num_imfs=100, S_number=4, num_siftings=100)

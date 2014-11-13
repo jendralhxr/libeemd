@@ -6,7 +6,7 @@ commonflags += $(CFLAGS)
 all: eemd_example ceemdan_example
 
 eemd_example: eemd_example.c
-	gcc $(commonflags) $(gsl_flags) -I../src -L.. -Wl,-rpath,.. -leemd $^ -o $@
+	gcc -I../src -L.. -Wl,-rpath,.. $(commonflags) $(gsl_flags) -leemd $^ -o $@
 
 ceemdan_example: ceemdan_example.c
-	gcc $(commonflags) $(gsl_flags) -I../src -L.. -Wl,-rpath,.. -leemd $^ -o $@
+	gcc -I../src -L.. -Wl,-rpath,.. $(commonflags) $(gsl_flags) -leemd $^ -o $@

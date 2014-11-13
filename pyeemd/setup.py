@@ -61,7 +61,7 @@ class DummySDist(Command):
 libeemd = Extension('eemd', ['../src/eemd.c', '../src/eemd.h', '../Makefile'])
 
 setup(name='pyeemd',
-      version='1.1',
+      version='1.2',
       description='Ensemble Empirical Mode Decomposition with Python',
       author='Perttu Luukko',
       author_email='perttu.luukko@iki.fi',
