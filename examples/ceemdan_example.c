@@ -34,6 +34,7 @@ const char outfile[] = "ceemdan_example.out";
 const size_t N = 512;
 
 int main(void) {
+	libeemd_error_code err;
 	// As an example decompose a Dirac signal as in the original CEEMDAN paper
 	double* inp = malloc(N*sizeof(double));
 	memset(inp, 0x00, N*sizeof(double));
@@ -42,7 +43,11 @@ int main(void) {
 	size_t M = emd_num_imfs(N);
 	double* outp = malloc(M*N*sizeof(double));
 	// Run CEEMDAN
-	ceemdan(inp, N, outp, M, ensemble_size, noise_strength, S_number, num_siftings, rng_seed);
+	err = ceemdan(inp, N, outp, M, ensemble_size, noise_strength, S_number, num_siftings, rng_seed);
+	if (err != EMD_SUCCESS) {
+		emd_report_if_error(err);
+		exit(1);
+	}
 	// Write output to file
 	FILE* fp = fopen(outfile, "w");
 	for (size_t j=0; j<N; j++) {

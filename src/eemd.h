@@ -43,6 +43,26 @@
 #include <omp.h>
 #endif
 
+// Possible error codes returned by functions eemd, ceemdan and
+// emd_evaluate_spline
+typedef enum {
+	EMD_SUCCESS = 0,
+	// Errors from invalid parameters
+	EMD_INVALID_ENSEMBLE_SIZE = 1,
+	EMD_INVALID_NOISE_STRENGTH = 2,
+	EMD_NOISE_ADDED_TO_EMD = 3,
+	EMD_NO_NOISE_ADDED_TO_EEMD = 4,
+	EMD_NO_CONVERGENCE_POSSIBLE = 5,
+	EMD_NOT_ENOUGH_POINTS_FOR_SPLINE = 6,
+	EMD_INVALID_SPLINE_POINTS = 7,
+	// Other errors
+	EMD_GSL_ERROR = 8
+} libeemd_error_code;
+
+// Helper functions to print an error message if an error occured
+void emd_report_if_error(libeemd_error_code err);
+void emd_report_to_file_if_error(FILE* file, libeemd_error_code err);
+
 // Main EEMD decomposition routine as described in:
 //   Z. Wu and N. Huang,
 //   Ensemble Empirical Mode Decomposition: A Noise-Assisted Data Analysis
@@ -63,7 +83,7 @@
 // the sifting ends when either criterion is fulfilled. The final parameter is
 // the seed given to the random number generator. A value of zero denotes a
 // RNG-specific default value.
-void eemd(double const* restrict input, size_t N,
+libeemd_error_code eemd(double const* restrict input, size_t N,
 		double* restrict output, size_t M,
 		unsigned int ensemble_size, double noise_strength, unsigned int
 		S_number, unsigned int num_siftings, unsigned long int rng_seed);
@@ -75,7 +95,7 @@ void eemd(double const* restrict input, size_t N,
 //   (2011) 4144-4147
 //
 // Parameters are identical to routine eemd
-void ceemdan(double const* restrict input, size_t N,
+libeemd_error_code ceemdan(double const* restrict input, size_t N,
 		double* restrict output, size_t M,
 		unsigned int ensemble_size, double noise_strength, unsigned int
 		S_number, unsigned int num_siftings, unsigned long int rng_seed);
@@ -106,7 +126,7 @@ size_t emd_num_imfs(size_t N);
 //
 // This routine is mainly exported so that it can be tested separately to
 // produce identical results to the Matlab routine 'spline'.
-void emd_evaluate_spline(double const* restrict x, double const* restrict y,
+libeemd_error_code emd_evaluate_spline(double const* restrict x, double const* restrict y,
 		size_t N, double* restrict spline_y, double* spline_workspace);
 
 #endif // _EEMD_H_

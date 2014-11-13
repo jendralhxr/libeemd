@@ -37,8 +37,22 @@ from numpy.ctypeslib import ndpointer
 _LIBDIR = os.path.dirname(os.path.realpath(__file__))
 _LIBFILE = os.path.join(_LIBDIR, "libeemd.so")
 _libeemd = ctypes.CDLL(_LIBFILE)
+
+def libeemd_error_handler(err):
+    """
+    Function for handling error codes reported by libeemd and converting
+    them to exceptions if needed.
+    """
+    if err == 0:
+        return
+    if 1 <= err <= 7:
+        raise ValueError("libeemd reported a call with incorrect parameters, but the error condition was not handled by pyeemd. The error code was %d. Please see eemd.h to see what the error was and file a bug report." % err)
+    else:
+        raise RuntimeError("libeemd reported a runtime error with error code %d. Please see eemd.h to see what the error was and file a bug report." % err)
+    return
+
 # Call signature for eemd()
-_libeemd.eemd.restype = None
+_libeemd.eemd.restype = libeemd_error_handler
 _libeemd.eemd.argtypes = [ndpointer(float, flags=('C', 'A')),
                           ctypes.c_size_t,
                           ndpointer(float, flags=('C', 'A', 'W')),
@@ -49,7 +63,7 @@ _libeemd.eemd.argtypes = [ndpointer(float, flags=('C', 'A')),
                           ctypes.c_uint,
                           ctypes.c_ulong]
 # Call signature for ceemdan() (exactly the same as eemd)
-_libeemd.ceemdan.restype = None
+_libeemd.ceemdan.restype = libeemd_error_handler
 _libeemd.ceemdan.argtypes = [ndpointer(float, flags=('C', 'A')),
                           ctypes.c_size_t,
                           ndpointer(float, flags=('C', 'A', 'W')),
