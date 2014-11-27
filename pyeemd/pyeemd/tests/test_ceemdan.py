@@ -103,13 +103,19 @@ def test_extract_residual():
     print abs(residual-x)[10:-10]
     assert_allclose(residual[10:-10], x[10:-10], rtol=0.1, atol=1)
 
-def test_rng_seed():
+def test_rng_seed_nonequal():
     N = 64
-    x1 = normal(0, 1, N)
-    x2 = normal(0, 1, N)
-    imfs1 = ceemdan(x1, S_number=4, num_siftings=100, rng_seed=3141)
-    imfs2 = ceemdan(x2, S_number=4, num_siftings=100, rng_seed=5926)
+    x = normal(0, 1, N)
+    imfs1 = ceemdan(x, num_siftings=10, rng_seed=3141)
+    imfs2 = ceemdan(x, num_siftings=10, rng_seed=5926)
     assert not allclose(imfs1, imfs2)
+
+def test_rng_seed_equal():
+    N = 64
+    x = normal(0, 1, N)
+    imfs1 = ceemdan(x, num_siftings=10, rng_seed=9876)
+    imfs2 = ceemdan(x, num_siftings=10, rng_seed=9876)
+    assert_allclose(imfs1, imfs2)
 
 def test_completeness():
     for i in range(8):
