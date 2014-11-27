@@ -53,7 +53,7 @@ def plot_imfs(imfs, new_figs=True, plot_splines=True):
             title(label)
         plot(imf, label=label)
         if plot_splines:
-            _, maxx, maxy, minx, miny = emd_find_extrema(imf)
+            maxx, maxy, minx, miny = emd_find_extrema(imf)
             maxs = emd_evaluate_spline(maxx, maxy)
             mins = emd_evaluate_spline(minx, miny)
             means = (maxs+mins)/2

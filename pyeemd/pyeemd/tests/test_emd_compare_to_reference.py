@@ -143,7 +143,7 @@ def get_reference_extrema(ys):
 
 
 def check_extrema(ys):
-    _, maxx, maxy, minx, miny = emd_find_extrema(ys)
+    maxx, maxy, minx, miny = emd_find_extrema(ys)
     ref_maxx, ref_maxy, ref_minx, ref_miny = get_reference_extrema(ys)
     assert(all(maxx == ref_maxx))
     check_arrays_equal(maxy, ref_maxy)

@@ -474,24 +474,36 @@ static inline libeemd_error_code _sift(double* restrict input, sifting_workspace
 	// and the S number
 	unsigned int sift_counter = 0;
 	unsigned int S_counter = 0;
-	// Numbers of minima and maxima are initialized to dummy values
+	// Numbers of extrema and zero crossings are initialized to dummy values
 	size_t num_max = (size_t)(-1);
 	size_t num_min = (size_t)(-1);
+	size_t num_zc = (size_t)(-1);
 	size_t prev_num_max = (size_t)(-1);
 	size_t prev_num_min = (size_t)(-1);
 	while (num_siftings == 0 || sift_counter < num_siftings) {
 		sift_counter++;
+	size_t prev_num_zc = (size_t)(-1);
 		prev_num_max = num_max;
 		prev_num_min = num_min;
-		// Find extrema
-		const bool all_extrema_good = emd_find_extrema(input, N,
-				maxx, maxy, &num_max, minx, miny, &num_min);
+		prev_num_zc = num_zc;
+		// Find extrema and count zero crossings
+		emd_find_extrema(input, N, maxx, maxy, &num_max, minx, miny, &num_min, &num_zc);
 		// Check if we are finished based on the S-number criteria
 		if (S_number != 0) {
-			if (all_extrema_good && (num_max == prev_num_max) && (num_min == prev_num_min)) {
+			const int max_diff = (int)num_max - (int)prev_num_max;
+			const int min_diff = (int)num_min - (int)prev_num_min;
+			const int zc_diff = (int)num_zc - (int)prev_num_zc;
+			if (abs(max_diff)+abs(min_diff)+abs(zc_diff) <= 1) {
 				S_counter++;
-				if (S_counter > S_number) {
-					break;
+				if (S_counter >= S_number) {
+					const int num_diff = (int)num_min + (int)num_max - 4 - (int)num_zc;
+					if (abs(num_diff) <= 1) {
+						// Number of extrema has been stable for S_number steps
+						// and the number of *interior* extrema and zero
+						// crossings differ by at most one -- we are converged
+						// according to the S-number criterion
+						break;
+					}
 				}
 			}
 			else {
@@ -564,34 +576,39 @@ static libeemd_error_code _emd(double* restrict input, emd_workspace* restrict w
 	return EMD_SUCCESS;
 }
 
-bool emd_find_extrema(double const* restrict x, size_t N,
+void emd_find_extrema(double const* restrict x, size_t N,
 		double* restrict maxx, double* restrict maxy, size_t* nmax,
-		double* restrict minx, double* restrict miny, size_t* nmin) {
+		double* restrict minx, double* restrict miny, size_t* nmin,
+		size_t* nzc) {
+	// Set the number of extrema and zero crossings to zero initially
+	*nmax = 0;
+	*nmin = 0;
+	*nzc = 0;
 	// Handle empty array as a special case
 	if (N == 0) {
-		*nmax = 0;
-		*nmin = 0;
-		return true;
+		return;
 	}
-	// Add the ends of the data as both local minima and extrema. These
+	// Add the ends of the data as both local minima and maxima. These
 	// might be changed later by linear extrapolation.
 	maxx[0] = 0;
 	maxy[0] = x[0];
-	*nmax = 1;
+	(*nmax)++;
 	minx[0] = 0;
 	miny[0] = x[0];
-	*nmin = 1;
+	(*nmin)++;
 	// If we had only one data point this is it
 	if (N == 1) {
-		return true;
+		return;
 	}
 	// Now starts the main extrema-finding loop. The loop detects points where
 	// the slope of the data changes sign. In the case of flat regions at the
 	// extrema, the center point of the flat region will be considered the
-	// extremal point.
-	bool all_extrema_good = true;
+	// extremal point. While detecting extrema, the loop also counts the number
+	// of zero crossings that occur.
 	enum slope { UP, DOWN, NONE };
+	enum sign { POS, NEG, ZERO };
 	enum slope previous_slope = NONE;
+	enum sign previous_sign = (x[0] < -0)? NEG : ((x[0] > 0)? POS : ZERO);
 	int flat_counter = 0;
 	for (size_t i=0; i<N-1; i++) {
 		if (x[i+1] > x[i]) { // Going up
@@ -600,9 +617,14 @@ bool emd_find_extrema(double const* restrict x, size_t N,
 				minx[*nmin] = (double)(i)-(double)(flat_counter)/2;
 				miny[*nmin] = x[i];
 				(*nmin)++;
-				if (x[i] >= 0) {
-					all_extrema_good = false;
-				}
+			}
+			if (previous_sign == NEG && x[i+1] > 0) { // zero crossing from neg to pos
+				(*nzc)++;
+				previous_sign = POS;
+			}
+			else if (previous_sign == ZERO && x[i+1] > 0) {
+				// this needs to be handled as an unfortunate special case
+				previous_sign = POS;
 			}
 			previous_slope = UP;
 			flat_counter = 0;
@@ -613,9 +635,14 @@ bool emd_find_extrema(double const* restrict x, size_t N,
 				maxx[*nmax] = (double)(i)-(double)(flat_counter)/2;
 				maxy[*nmax] = x[i];
 				(*nmax)++;
-				if (x[i] <= 0) {
-					all_extrema_good = false;
-				}
+			}
+			if (previous_sign == POS && x[i+1] < -0) { // zero crossing from pos to neg
+				(*nzc)++;
+				previous_sign = NEG;
+			}
+			else if (previous_sign == ZERO && x[i+1] < -0) {
+				// this needs to be handled as an unfortunate special case
+				previous_sign = NEG;
 			}
 			previous_slope = DOWN;
 			flat_counter = 0;
@@ -656,7 +683,7 @@ bool emd_find_extrema(double const* restrict x, size_t N,
 		if (min_er < miny[*nmin-1])
 			miny[*nmin-1] = min_er;
 	}
-	return all_extrema_good;
+	return;
 }
 
 size_t emd_num_imfs(size_t N) {

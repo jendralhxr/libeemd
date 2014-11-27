@@ -74,7 +74,7 @@ _libeemd.ceemdan.argtypes = [ndpointer(float, flags=('C', 'A')),
                           ctypes.c_uint,
                           ctypes.c_ulong]
 # Call signature for emd_find_extrema()
-_libeemd.emd_find_extrema.restype = ctypes.c_bool
+_libeemd.emd_find_extrema.restype = None
 _libeemd.emd_find_extrema.argtypes = [ndpointer(float, flags=('C', 'A')),
                                       ctypes.c_size_t,
                                       ndpointer(float, flags=('C', 'A', 'W')),
@@ -82,6 +82,7 @@ _libeemd.emd_find_extrema.argtypes = [ndpointer(float, flags=('C', 'A')),
                                       ctypes.POINTER(ctypes.c_size_t),
                                       ndpointer(float, flags=('C', 'A', 'W')),
                                       ndpointer(float, flags=('C', 'A', 'W')),
+                                      ctypes.POINTER(ctypes.c_size_t),
                                       ctypes.POINTER(ctypes.c_size_t)]
 # Call signature for emd_num_imfs()
 _libeemd.emd_num_imfs.restype = ctypes.c_size_t
@@ -270,10 +271,6 @@ def emd_find_extrema(x):
 
     Returns
     -------
-    all_extrema_good : bool
-        Specifies whether the extrema fulfill the requirements of an IMF, i.e.
-        , the local minima are negative and the local maxima are positive.
-
     maxx : ndarray
         The x-coordinates of the local maxima.
 
@@ -303,14 +300,14 @@ def emd_find_extrema(x):
     minx = numpy.empty(N, dtype=float, order='C')
     miny = numpy.empty(N, dtype=float, order='C')
     num_min = ctypes.c_size_t()
-    all_extrema_good = _libeemd.emd_find_extrema(x, N, maxx, maxy,
-                                                 ctypes.byref(num_max), minx,
-                                                 miny, ctypes.byref(num_min))
+    num_zc = ctypes.c_size_t()
+    _libeemd.emd_find_extrema(x, N, maxx, maxy, ctypes.byref(num_max), minx,
+            miny, ctypes.byref(num_min), ctypes.byref(num_zc))
     maxx.resize(num_max.value)
     maxy.resize(num_max.value)
     minx.resize(num_min.value)
     miny.resize(num_min.value)
-    return [all_extrema_good, maxx, maxy, minx, miny]
+    return [maxx, maxy, minx, miny]
 
 
 def emd_num_imfs(N):
