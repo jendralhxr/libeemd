@@ -80,6 +80,13 @@ def check_completeness():
     imfsum = sum(imfs, axis=0)
     assert_allclose(x, imfsum)
 
+def test_num_imfs():
+    N = 64
+    x = normal(0, 1, N)
+    imfs1 = emd(x, num_imfs=3, S_number=4, num_siftings=100)
+    imfs2 = emd(x, num_imfs=4, S_number=4, num_siftings=100)
+    assert_allclose(imfs1[:2,:], imfs2[:2,:])
+
 def test_num_imfs_output_size():
     N = 64
     x = normal(0, 1, N)

@@ -114,8 +114,8 @@ def test_rng_seed():
 def test_num_imfs():
     N = 64
     x = normal(0, 1, N)
-    imfs1 = eemd(x, num_imfs=3, S_number=4, num_siftings=100)
-    imfs2 = eemd(x, num_imfs=4, S_number=4, num_siftings=100)
+    imfs1 = eemd(x, num_imfs=3, S_number=4, num_siftings=100, rng_seed=1234)
+    imfs2 = eemd(x, num_imfs=4, S_number=4, num_siftings=100, rng_seed=1234)
     assert_allclose(imfs1[:2,:], imfs2[:2,:])
 
 def test_num_imfs_output_size():
