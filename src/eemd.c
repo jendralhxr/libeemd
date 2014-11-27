@@ -228,6 +228,7 @@ libeemd_error_code eemd(double const* restrict input, size_t N,
 	#endif
 	unsigned int ensemble_counter = 0;
 	// The following section is executed in parallel
+	libeemd_error_code emd_err = EMD_SUCCESS;
 	#pragma omp parallel
 	{
 		#ifdef _OPENMP
@@ -258,6 +259,11 @@ libeemd_error_code eemd(double const* restrict input, size_t N,
 		// Loop over all ensemble members, dividing them among the threads
 		#pragma omp for
 		for (size_t en_i=0; en_i<ensemble_size; en_i++) {
+			// Check if an error has occured in other threads
+			#pragma omp flush(emd_err)
+			if (emd_err != EMD_SUCCESS) {
+				continue;
+			}
 			// Initialize ensemble member as input data + noise
 			if (noise_strength == 0.0) {
 				array_copy(input, N, w->x);
@@ -268,7 +274,8 @@ libeemd_error_code eemd(double const* restrict input, size_t N,
 				}
 			}
 			// Extract IMFs with EMD
-			_emd(w->x, w->emd_w, output, M, S_number, num_siftings);
+			emd_err = _emd(w->x, w->emd_w, output, M, S_number, num_siftings);
+			#pragma omp flush(emd_err)
 			#pragma omp atomic
 			ensemble_counter++;
 			#if EEMD_DEBUG >= 1
@@ -287,6 +294,9 @@ libeemd_error_code eemd(double const* restrict input, size_t N,
 			free(locks); locks = NULL;
 		}
 	} // End of parallel block
+	if (emd_err != EMD_SUCCESS) {
+		return emd_err;
+	}
 	// Divide output data by the ensemble size to get the average
 	if (ensemble_size != 1) {
 		const double one_per_ensemble_size = 1.0/ensemble_size;
