@@ -188,7 +188,9 @@ static libeemd_error_code _emd(double* restrict input, emd_workspace* restrict w
 // Forward declaration of a helper function for applying the sifting procedure to
 // input until it is reduced to an IMF according to the stopping criteria given
 // by S_number and num_siftings
-static inline libeemd_error_code _sift(double* restrict input, sifting_workspace* restrict w, unsigned int S_number, unsigned int num_siftings);
+static libeemd_error_code _sift(double* restrict input, sifting_workspace*
+		restrict w, unsigned int S_number, unsigned int num_siftings, unsigned int*
+		sift_counter);
 
 // Forward declaration of a helper function for parameter validation shared by functions eemd and ceemdan
 static inline libeemd_error_code _validate_eemd_parameters(unsigned int ensemble_size, double noise_strength, unsigned int S_number, unsigned int num_siftings);
@@ -387,6 +389,7 @@ libeemd_error_code ceemdan(double const* restrict input, size_t N,
 			const int thread_id = 0;
 			#endif
 			eemd_workspace* w = ws[thread_id];
+			unsigned int sift_counter = 0;
 			#pragma omp for
 			for (size_t en_i=0; en_i<ensemble_size; en_i++) {
 				// Check if an error has occured in other threads
@@ -401,7 +404,7 @@ libeemd_error_code ceemdan(double const* restrict input, size_t N,
 				// Initialize input signal as data + noise
 				array_add_to(res, noise, N, w->x);
 				// Sift to extract first EMD mode
-				sift_err = _sift(w->x, w->emd_w->sift_w, S_number, num_siftings);
+				sift_err = _sift(w->x, w->emd_w->sift_w, S_number, num_siftings, &sift_counter);
 				#pragma omp flush(sift_err)
 				// Sum to output vector
 				get_lock(output_lock);
@@ -415,7 +418,7 @@ libeemd_error_code ceemdan(double const* restrict input, size_t N,
 				else {
 					array_copy(noise_residual, N, noise);
 				}
-				sift_err = _sift(noise, w->emd_w->sift_w, S_number, num_siftings);
+				sift_err = _sift(noise, w->emd_w->sift_w, S_number, num_siftings, &sift_counter);
 				#pragma omp flush(sift_err)
 				array_sub(noise, N, noise_residual);
 			}
@@ -466,8 +469,10 @@ static inline libeemd_error_code _validate_eemd_parameters(unsigned int ensemble
 
 // Helper function for applying the sifting procedure to input until it is
 // reduced to an IMF according to the stopping criteria given by S_number and
-// num_siftings
-static inline libeemd_error_code _sift(double* restrict input, sifting_workspace* restrict w, unsigned int S_number, unsigned int num_siftings) {
+// num_siftings. The required number of siftings is saved to sift_counter.
+static libeemd_error_code _sift(double* restrict input, sifting_workspace*
+		restrict w, unsigned int S_number, unsigned int num_siftings,
+		unsigned int* sift_counter) {
 	const size_t N = w->N;
 	// Provide some shorthands to avoid excessive '->' operators
 	double* const maxx = w->maxx;
@@ -476,7 +481,7 @@ static inline libeemd_error_code _sift(double* restrict input, sifting_workspace
 	double* const miny = w->miny;
 	// Initialize counters that keep track of the number of siftings
 	// and the S number
-	unsigned int sift_counter = 0;
+	*sift_counter = 0;
 	unsigned int S_counter = 0;
 	// Numbers of extrema and zero crossings are initialized to dummy values
 	size_t num_max = (size_t)(-1);
@@ -484,9 +489,14 @@ static inline libeemd_error_code _sift(double* restrict input, sifting_workspace
 	size_t num_zc = (size_t)(-1);
 	size_t prev_num_max = (size_t)(-1);
 	size_t prev_num_min = (size_t)(-1);
-	while (num_siftings == 0 || sift_counter < num_siftings) {
-		sift_counter++;
 	size_t prev_num_zc = (size_t)(-1);
+	while (num_siftings == 0 || *sift_counter < num_siftings) {
+		(*sift_counter)++;
+		#if EEMD_DEBUG >= 1
+		if (*sift_counter == 10000) {
+			fprintf(stderr, "Something is probably wrong. Sift counter has reached 10000.\n");
+		}
+		#endif
 		prev_num_max = num_max;
 		prev_num_min = num_min;
 		prev_num_zc = num_zc;
@@ -549,6 +559,7 @@ static libeemd_error_code _emd(double* restrict input, emd_workspace* restrict w
 	// the residual for the next iteration
 	array_copy(input, N, res);
 	// Loop over all IMFs to be separated from input
+	unsigned int sift_counter;
 	for (size_t imf_i=0; imf_i<M-1; imf_i++) {
 		if (imf_i != 0) {
 			// Except for the first iteration, restore the previous residual
@@ -556,7 +567,7 @@ static libeemd_error_code _emd(double* restrict input, emd_workspace* restrict w
 			array_copy(res, N, input);
 		}
 		// Perform siftings on input until it is an IMF
-		libeemd_error_code sift_err = _sift(input, w->sift_w, S_number, num_siftings);
+		libeemd_error_code sift_err = _sift(input, w->sift_w, S_number, num_siftings, &sift_counter);
 		if (sift_err != EMD_SUCCESS) {
 			return sift_err;
 		}
