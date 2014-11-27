@@ -2,6 +2,7 @@ Notable changes from previous release:
 
 In development:
 	* Completely reworked S-number criterion handling
+	* Minor bug fixes
 
 Version 1.2:
 	* Rudimentary error reporting in the C API

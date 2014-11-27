@@ -381,7 +381,11 @@ libeemd_error_code ceemdan(double const* restrict input, size_t N,
 		libeemd_error_code sift_err = EMD_SUCCESS;
 		#pragma omp parallel
 		{
+			#ifdef _OPENMP
 			const int thread_id = omp_get_thread_num();
+			#else
+			const int thread_id = 0;
+			#endif
 			eemd_workspace* w = ws[thread_id];
 			#pragma omp for
 			for (size_t en_i=0; en_i<ensemble_size; en_i++) {
