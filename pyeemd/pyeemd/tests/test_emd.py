@@ -19,7 +19,8 @@
 
 from pyeemd import emd, eemd
 from nose.tools import assert_equal, raises
-from numpy import zeros, all, arange, allclose, sum
+from numpy import zeros, all, arange, sum
+from numpy.testing import assert_allclose
 from numpy.random import normal
 
 @raises(TypeError)
@@ -67,7 +68,7 @@ def check_identical_data():
     x = normal(0, 1, 64)
     imfs1 = emd(x, S_number=4, num_siftings=1000)
     imfs2 = emd(x, S_number=4, num_siftings=1000)
-    assert allclose(imfs1, imfs2)
+    assert_allclose(imfs1, imfs2)
 
 def test_completeness():
     for i in range(8):
@@ -77,7 +78,7 @@ def check_completeness():
     x = normal(0, 1, 64)
     imfs = emd(x, S_number=4, num_siftings=1000)
     imfsum = sum(imfs, axis=0)
-    assert allclose(x, imfsum)
+    assert_allclose(x, imfsum)
 
 def test_num_imfs_output_size():
     N = 64

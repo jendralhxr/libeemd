@@ -20,6 +20,7 @@
 from pyeemd import eemd
 from nose.tools import assert_equal, raises
 from numpy import zeros, all, abs, allclose, linspace
+from numpy.testing import assert_allclose
 from numpy.random import normal
 
 @raises(ValueError)
@@ -88,7 +89,7 @@ def test_ones():
     for n in range(imfs.shape[0]-1):
         imf = imfs[n,:]
         assert all(abs(imf) < 1e-9)
-    assert allclose(imfs[-1,:], x)
+    assert_allclose(imfs[-1,:], x)
 
 def test_extract_residual():
     N = 100
@@ -100,7 +101,7 @@ def test_extract_residual():
     # added noise, at least away from the ends
     residual = imfs[-1,:]
     print abs(residual-x)[10:-10]
-    assert allclose(residual[10:-10], x[10:-10], rtol=0.1, atol=1)
+    assert_allclose(residual[10:-10], x[10:-10], rtol=0.1, atol=1)
 
 def test_rng_seed():
     N = 64
@@ -115,7 +116,7 @@ def test_num_imfs():
     x = normal(0, 1, N)
     imfs1 = eemd(x, num_imfs=3, S_number=4, num_siftings=100)
     imfs2 = eemd(x, num_imfs=4, S_number=4, num_siftings=100)
-    assert allclose(imfs1[:2,:], imfs2[:2,:])
+    assert_allclose(imfs1[:2,:], imfs2[:2,:])
 
 def test_num_imfs_output_size():
     N = 64
