@@ -145,9 +145,3 @@ def test_num_imfs_just_residual():
     x = normal(0, 1, N)
     imfs = ceemdan(x, num_imfs=1, S_number=4, num_siftings=100)
     assert_allclose(imfs[-1,:], x)
-
-@raises(ValueError)
-def test_num_imfs_too_much():
-    N = 8
-    x = normal(0, 1, N)
-    imfs = ceemdan(x, num_imfs=100, S_number=4, num_siftings=100)

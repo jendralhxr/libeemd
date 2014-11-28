@@ -116,7 +116,7 @@ def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
         The input signal to decompose. Has to be a one-dimensional array-like object.
 
     num_imfs : int, optional
-        Number of IMFs to extract. If set to `None`, a maximum value given by
+        Number of IMFs to extract. If set to `None`, a default value given by
         `emd_num_imfs(N)` is used. Note that the residual is also counted in
         this number, so num_imfs=1 will simply give you the input signal plus
         noise.
@@ -173,8 +173,6 @@ def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
     # Perform some checks on input arguments first
     if (num_imfs is not None and num_imfs < 1):
         raise ValueError("num_imfs passed to eemd must be >= 1")
-    if (num_imfs is not None and num_imfs > emd_num_imfs(len(inp))):
-        raise ValueError("num_imfs passed to eemd must be <= emd_num_imfs(N)")
     if (ensemble_size < 1):
         raise ValueError("ensemble_size passed to eemd must be >= 1")
     if (S_number < 0):
@@ -225,8 +223,6 @@ def ceemdan(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=
     # Perform some checks on input arguments first
     if (num_imfs is not None and num_imfs < 1):
         raise ValueError("num_imfs passed to eemd must be >= 1")
-    if (num_imfs is not None and num_imfs > emd_num_imfs(len(inp))):
-        raise ValueError("num_imfs passed to eemd must be <= emd_num_imfs(N)")
     if (ensemble_size < 1):
         raise ValueError("ensemble_size passed to ceemdan must be >= 1")
     if (S_number < 0):

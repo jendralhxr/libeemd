@@ -129,9 +129,3 @@ def test_num_imfs_output_size():
     x = normal(0, 1, N)
     imfs = eemd(x, num_imfs=3, S_number=4, num_siftings=100)
     assert imfs.shape[0] == 3
-
-@raises(ValueError)
-def test_num_imfs_too_much():
-    N = 8
-    x = normal(0, 1, N)
-    imfs = eemd(x, num_imfs=100, S_number=4, num_siftings=100)
