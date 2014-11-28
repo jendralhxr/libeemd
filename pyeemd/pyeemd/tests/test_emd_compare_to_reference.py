@@ -45,7 +45,7 @@ def ensure_reference_code_exists(filenames):
 def find_matlab():
     whichcmd = "which matlab"
     try:
-        matlabcmd = subprocess.check_output(whichcmd, shell=True).rstrip("\n")
+        matlabcmd = subprocess.check_output(whichcmd, shell=True, stderr=subprocess.PIPE).rstrip("\n")
     except subprocess.CalledProcessError:
         raise SkipTest("Matlab not found in PATH (tried `%s`). Skipping test." % whichcmd)
     return matlabcmd
