@@ -191,7 +191,7 @@ def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=Non
     if (num_siftings < 0):
         raise ValueError("num_siftings passed to eemd must be non-negative")
     if (S_number == 0 and num_siftings == 0):
-        raise ValueError("One of S_number or num_siftings must be positive")
+        raise ValueError("one of S_number or num_siftings must be positive")
     if (noise_strength < 0):
         raise ValueError("noise_strength passed to eemd must be non-negative")
     if (num_siftings == 0):
@@ -241,7 +241,7 @@ def ceemdan(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=
         num_siftings = 50
     # Perform some checks on input arguments first
     if (num_imfs is not None and num_imfs < 1):
-        raise ValueError("num_imfs passed to eemd must be >= 1")
+        raise ValueError("num_imfs passed to ceemdan must be >= 1")
     if (ensemble_size < 1):
         raise ValueError("ensemble_size passed to ceemdan must be >= 1")
     if (S_number < 0):
@@ -249,7 +249,7 @@ def ceemdan(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=
     if (num_siftings < 0):
         raise ValueError("num_siftings passed to ceemdan must be non-negative")
     if (S_number == 0 and num_siftings == 0):
-        raise ValueError("One of S_number or num_siftings must be positive")
+        raise ValueError("one of S_number or num_siftings must be positive")
     if (noise_strength < 0):
         raise ValueError("noise_strength passed to ceemdan must be non-negative")
     if (num_siftings == 0):
@@ -257,7 +257,7 @@ def ceemdan(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=
     # Initialize numpy arrays
     inp = numpy.require(inp, float, ('C', 'A'))
     if (inp.ndim != 1):
-        raise ValueError("input data passed to eemd must be a 1D array")
+        raise ValueError("input data passed to ceemdan must be a 1D array")
     N = inp.size
     M = (num_imfs if num_imfs is not None else emd_num_imfs(N))
     outbuffer = numpy.zeros(M*N, dtype=float, order='C')
