@@ -25,6 +25,6 @@ from numpy import arange, cos, pi
 x = arange(0, 512)
 y = cos(2*pi/30*x) + cos(2*pi/34*x)
 plot(x, y)
-imfs = eemd(y, S_number=4)
+imfs = eemd(y, num_siftings=10)
 plot_imfs(imfs)
 show()

@@ -98,8 +98,8 @@ _libeemd.emd_evaluate_spline.argtypes = [ndpointer(float, flags=('C', 'A')),
                                          ndpointer(float, flags=('C', 'A', 'W'))]
 
 
-def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
-         num_siftings=0, rng_seed=0):
+def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=None,
+         num_siftings=None, rng_seed=0):
     """
     Decompose input data array `inp` to Intrinsic Mode Functions (IMFs) with the
     Ensemble Empirical Mode Decomposition algorithm [1]_.
@@ -108,7 +108,10 @@ def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
     given by parameters `ensemble_size` and `noise_strength`, respectively.  The
     stopping criterion for the decomposition is given by either a S-number or
     an absolute number of siftings. In the case that both are positive numbers,
-    the sifting ends when either of the conditions is fulfilled.
+    the sifting ends when either of the conditions is fulfilled. By default,
+    `num_siftings=50` and `S_number=4`. If only `S_number` is set to a positive
+    value, `num_siftings` defaults to 50. If only `num_siftings` is set to a
+    positive value, `S_number` defaults to 0.
 
     Parameters
     ----------
@@ -170,6 +173,14 @@ def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
     emd_num_imfs : The number of IMFs returned for a given input length `N`
         unless a specific number is set by `num_imfs`.
     """
+    # Set default values for S_number and num_siftings
+    if (S_number is None and num_siftings is None):
+        S_number = 4
+        num_siftings = 50
+    if (S_number is None and num_siftings is not None):
+        S_number = 0
+    if (S_number is not None and num_siftings is None):
+        num_siftings = 50
     # Perform some checks on input arguments first
     if (num_imfs is not None and num_imfs < 1):
         raise ValueError("num_imfs passed to eemd must be >= 1")
@@ -199,8 +210,8 @@ def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
     outbuffer = numpy.reshape(outbuffer, (M, N))
     return outbuffer
 
-def ceemdan(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
-        num_siftings=0, rng_seed=0):
+def ceemdan(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=None,
+        num_siftings=None, rng_seed=0):
     """
     Decompose input data array `inp` to Intrinsic Mode Functions (IMFs) with the
     Complete Ensemble Empirical Mode Decomposition with Adaptive Noise (CEEMDAN)
@@ -220,6 +231,14 @@ def ceemdan(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=
     eemd : The regular Ensemble Empirical Mode Decomposition routine.
     emd_num_imfs : The number of IMFs returned for a given input length.
     """
+    # Set default values for S_number and num_siftings
+    if (S_number is None and num_siftings is None):
+        S_number = 4
+        num_siftings = 50
+    if (S_number is None and num_siftings is not None):
+        S_number = 0
+    if (S_number is not None and num_siftings is None):
+        num_siftings = 50
     # Perform some checks on input arguments first
     if (num_imfs is not None and num_imfs < 1):
         raise ValueError("num_imfs passed to eemd must be >= 1")
@@ -250,7 +269,7 @@ def ceemdan(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=
     return outbuffer
 
 
-def emd(inp, num_imfs=None, S_number=0, num_siftings=0):
+def emd(inp, num_imfs=None, S_number=None, num_siftings=None):
     """
     A convenience function for performing EMD (not EEMD). This simply calls
     function :func:`~pyeemd.eemd` with ``ensemble_size=1`` and ``noise_strength=0``.

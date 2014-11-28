@@ -22,6 +22,7 @@ from nose.tools import assert_equal, raises
 from numpy import zeros, all, abs, allclose, linspace
 from numpy.testing import assert_allclose
 from numpy.random import normal
+from ctypes import ArgumentError
 
 @raises(ValueError)
 def test_bogus1():
@@ -39,29 +40,24 @@ def test_wrong_dims():
 @raises(ValueError)
 def test_invalid_arguments1():
     x = []
-    eemd(x, S_number=4, ensemble_size=0)
+    eemd(x, ensemble_size=0)
 
 @raises(ValueError)
 def test_invalid_arguments2():
     x = []
-    eemd(x, S_number=4, noise_strength=-2)
+    eemd(x, noise_strength=-2)
 
 @raises(ValueError)
 def test_invalid_arguments3():
     x = []
-    eemd(x, S_number=0)
+    eemd(x, num_siftings=0, S_number=0)
 
 @raises(ValueError)
 def test_invalid_arguments4():
     x = []
     eemd(x, num_siftings=-3)
 
-@raises(ValueError)
-def test_invalid_arguments5():
-    x = []
-    eemd(x)
-
-@raises(ValueError)
+@raises(ArgumentError)
 def test_invalid_arguments6():
     x = []
     eemd(x, num_imfs="Lots")
@@ -78,14 +74,14 @@ def test_invalid_arguments8():
 
 def test_zeros():
     x = zeros(64)
-    imfs = eemd(x, S_number=4, ensemble_size=10)
+    imfs = eemd(x, ensemble_size=10)
     # the zero signal has zero standard deviation so no noise should be added
     assert all(imfs == 0)
 
 def test_ones():
     N = 64
     x = [1]*N
-    imfs = eemd(x, S_number=4, num_siftings=1000, ensemble_size=100)
+    imfs = eemd(x, ensemble_size=100)
     for n in range(imfs.shape[0]-1):
         imf = imfs[n,:]
         assert all(abs(imf) < 1e-9)
@@ -96,7 +92,7 @@ def test_extract_residual():
     t = linspace(1, 10, num=N)
     x = t**2
     xn = x + normal(0, 0.5, N)
-    imfs = eemd(xn, S_number=4, num_siftings=1000)
+    imfs = eemd(xn)
     # the residual should be approximately equal to the signal without the
     # added noise, at least away from the ends
     residual = imfs[-1,:]
@@ -106,8 +102,8 @@ def test_extract_residual():
 def test_rng_seed_nonequal():
     N = 64
     x = normal(0, 1, N)
-    imfs1 = eemd(x, num_siftings=10, rng_seed=3141)
-    imfs2 = eemd(x, num_siftings=10, rng_seed=5926)
+    imfs1 = eemd(x, rng_seed=3141)
+    imfs2 = eemd(x, rng_seed=5926)
     assert not allclose(imfs1, imfs2)
 
 def test_rng_seed_equal():
@@ -127,5 +123,5 @@ def test_num_imfs():
 def test_num_imfs_output_size():
     N = 64
     x = normal(0, 1, N)
-    imfs = eemd(x, num_imfs=3, S_number=4, num_siftings=100)
+    imfs = eemd(x, num_imfs=3)
     assert imfs.shape[0] == 3

@@ -26,12 +26,12 @@ from numpy.random import normal
 @raises(TypeError)
 def test_bogus_arguments1():
     x = normal(0, 1, 128)
-    emd(x, S_number=4, noise_strength=1)
+    emd(x, noise_strength=1)
 
 @raises(TypeError)
 def test_bogus_arguments2():
     x = normal(0, 1, 128)
-    emd(x, S_number=4, ensemble_size=100)
+    emd(x, ensemble_size=100)
 
 def test_emd_is_eemd():
     for i in range(16):
@@ -39,13 +39,13 @@ def test_emd_is_eemd():
         yield check_emd_is_eemd, x
     
 def check_emd_is_eemd(x):
-    emd_imfs = emd(x, S_number=4)
-    eemd_imfs = eemd(x, S_number=4, ensemble_size=1, noise_strength=0)
+    emd_imfs = emd(x)
+    eemd_imfs = eemd(x, ensemble_size=1, noise_strength=0)
     assert all(emd_imfs == eemd_imfs)
 
 def test_empty():
     x = []
-    imfs = emd(x, S_number=4)
+    imfs = emd(x)
     assert_equal(imfs.ndim, 2)
     assert_equal(imfs.size, 0)
 
@@ -55,7 +55,7 @@ def test_shorts():
 
 def check_short(n):
     x = arange(n)
-    imfs = emd(x, S_number=4, num_siftings=1000)
+    imfs = emd(x)
     assert_equal(imfs.ndim, 2)
     assert_equal(imfs.shape[0], 1)
     assert all(imfs[0,:] == x)
@@ -66,8 +66,8 @@ def test_identical_data():
 
 def check_identical_data():
     x = normal(0, 1, 64)
-    imfs1 = emd(x, S_number=4, num_siftings=1000)
-    imfs2 = emd(x, S_number=4, num_siftings=1000)
+    imfs1 = emd(x, num_siftings=10)
+    imfs2 = emd(x, num_siftings=10)
     assert_allclose(imfs1, imfs2)
 
 def test_completeness():
@@ -76,25 +76,25 @@ def test_completeness():
 
 def check_completeness():
     x = normal(0, 1, 64)
-    imfs = emd(x, S_number=4, num_siftings=1000)
+    imfs = emd(x)
     imfsum = sum(imfs, axis=0)
     assert_allclose(x, imfsum)
 
 def test_num_imfs():
     N = 64
     x = normal(0, 1, N)
-    imfs1 = emd(x, num_imfs=3, S_number=4, num_siftings=100)
-    imfs2 = emd(x, num_imfs=4, S_number=4, num_siftings=100)
+    imfs1 = emd(x, num_imfs=3, num_siftings=10)
+    imfs2 = emd(x, num_imfs=4, num_siftings=10)
     assert_allclose(imfs1[:2,:], imfs2[:2,:])
 
 def test_num_imfs_output_size():
     N = 64
     x = normal(0, 1, N)
-    imfs = emd(x, num_imfs=3, S_number=4, num_siftings=100)
+    imfs = emd(x, num_imfs=3)
     assert imfs.shape[0] == 3
 
 def test_num_imfs_just_residual():
     N = 64
     x = normal(0, 1, N)
-    imfs = emd(x, num_imfs=1, num_siftings=10)
+    imfs = emd(x, num_imfs=1)
     assert all(imfs[-1,:] == x)

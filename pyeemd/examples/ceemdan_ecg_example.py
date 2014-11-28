@@ -31,8 +31,8 @@ ecg = loadtxt("ecg.csv", delimiter=',')
 title("Original signal")
 plot(ecg)
 
-# Calculate IMFs and the residual by CEEMDAN using a S-number of 4
-imfs = ceemdan(ecg, S_number=4)
+# Calculate IMFs and the residual by CEEMDAN using the default parameters
+imfs = ceemdan(ecg)
 
 # Plot the results using the plot_imfs helper function from pyeemd.utils
 plot_imfs(imfs, plot_splines=False)
