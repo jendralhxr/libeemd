@@ -29,6 +29,7 @@ defined in ``libeemd.so`` via a simple ``ctypes`` interface.
 """
 
 import os
+import warnings
 import ctypes
 import numpy
 from numpy.ctypeslib import ndpointer
@@ -184,6 +185,8 @@ def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
         raise ValueError("One of S_number or num_siftings must be positive")
     if (noise_strength < 0):
         raise ValueError("noise_strength passed to eemd must be non-negative")
+    if (num_siftings == 0):
+        warnings.warn("(E)EMD with only the S-number stopping criterion (i.e., num_siftings=0) might never finish if stuck in some obscure numerical corner case.", stacklevel=2)
     # Initialize numpy arrays
     inp = numpy.require(inp, float, ('C', 'A'))
     if (inp.ndim != 1):
@@ -234,6 +237,8 @@ def ceemdan(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=
         raise ValueError("One of S_number or num_siftings must be positive")
     if (noise_strength < 0):
         raise ValueError("noise_strength passed to ceemdan must be non-negative")
+    if (num_siftings == 0):
+        warnings.warn("CEEMDAN with only the S-number stopping criterion (i.e., num_siftings=0) might never finish if stuck in some obscure numerical corner case.", stacklevel=2)
     # Initialize numpy arrays
     inp = numpy.require(inp, float, ('C', 'A'))
     if (inp.ndim != 1):

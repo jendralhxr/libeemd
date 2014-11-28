@@ -1,6 +1,7 @@
 Notable changes from previous release:
 
 In development:
+	* pyeemd warns if using num_siftings=0
 	* Completely reworked S-number criterion handling
 	* Minor bug fixes
 	* Minor improvements to unit tests
