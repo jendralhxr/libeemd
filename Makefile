@@ -1,6 +1,6 @@
 .PHONY: all clean install uninstall
 
-version := 1.2
+version := 1.3
 gsl_flags := $(shell pkg-config --libs --cflags gsl) -DHAVE_INLINE
 commonflags := -Wall -Wextra -std=c99 -pedantic -Wno-unknown-pragmas -Wshadow -Wpointer-arith
 commonflags += $(CFLAGS)
