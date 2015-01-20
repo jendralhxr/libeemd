@@ -38,13 +38,13 @@ obj:
 	mkdir -p obj
 
 obj/eemd.o: src/eemd.c src/eemd.h | obj
-	gcc $(commonflags) $(gsl_flags) -c $< -o $@
+	gcc $(commonflags) -c $< $(gsl_flags) -o $@
 
 libeemd.a: obj/eemd.o
 	$(AR) rcs $@ $^
 
 libeemd.so.$(version): src/eemd.c src/eemd.h
-	gcc $(commonflags) -shared -Wl,-soname,$@ -fPIC $(gsl_flags) $< -o $@
+	gcc $(commonflags) $< -fPIC -shared -Wl,-soname,$@ $(gsl_flags) -o $@
 	ln -sf $@ libeemd.so
 
 eemd.h: src/eemd.h
