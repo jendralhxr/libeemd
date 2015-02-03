@@ -47,12 +47,11 @@ the data looks like using :mod:`matplotlib.pyplot`.
 The data stored in `ecg` can be decomposed with CEEMDAN using the routine
 :func:`~pyeemd.ceemdan`. The only thing we need to decide is what to use as the
 stopping criterion for the sifting iterations. In this example we use a
-S-number of 4. The other choice would be to set a maximum number of siftings
-(as used in the reference EEMD code) by using the parameter `num_siftings`::
+S-number of 4 and a maximum number of siftings of 50::
 
     from pyeemd import ceemdan
 
-    imfs = ceemdan(ecg, S_number=4)
+    imfs = ceemdan(ecg, S_number=4, num_siftings=50)
 
 Now the rows of the 2D array `imfs` are the IMFs the original signal decomposes
 to when applying CEEMDAN. We can plot these IMFs using :mod:`matplotlib.pyplot`

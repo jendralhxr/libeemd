@@ -1,5 +1,14 @@
 Notable changes from previous release:
 
+In development:
+
+Version 1.3:
+	* New default stopping parameters for pyeemd
+	* pyeemd warns if using num_siftings=0
+	* Completely reworked S-number criterion handling
+	* Minor bug fixes
+	* Minor improvements to unit tests
+
 Version 1.2:
 	* Rudimentary error reporting in the C API
 	* Allow setting number of IMFs to compute

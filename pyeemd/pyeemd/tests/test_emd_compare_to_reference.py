@@ -45,7 +45,7 @@ def ensure_reference_code_exists(filenames):
 def find_matlab():
     whichcmd = "which matlab"
     try:
-        matlabcmd = subprocess.check_output(whichcmd, shell=True).rstrip("\n")
+        matlabcmd = subprocess.check_output(whichcmd, shell=True, stderr=subprocess.PIPE).rstrip("\n")
     except subprocess.CalledProcessError:
         raise SkipTest("Matlab not found in PATH (tried `%s`). Skipping test." % whichcmd)
     return matlabcmd
@@ -143,7 +143,7 @@ def get_reference_extrema(ys):
 
 
 def check_extrema(ys):
-    _, maxx, maxy, minx, miny = emd_find_extrema(ys)
+    maxx, maxy, minx, miny = emd_find_extrema(ys)
     ref_maxx, ref_maxy, ref_minx, ref_miny = get_reference_extrema(ys)
     assert(all(maxx == ref_maxx))
     check_arrays_equal(maxy, ref_maxy)

@@ -29,6 +29,7 @@ defined in ``libeemd.so`` via a simple ``ctypes`` interface.
 """
 
 import os
+import warnings
 import ctypes
 import numpy
 from numpy.ctypeslib import ndpointer
@@ -74,7 +75,7 @@ _libeemd.ceemdan.argtypes = [ndpointer(float, flags=('C', 'A')),
                           ctypes.c_uint,
                           ctypes.c_ulong]
 # Call signature for emd_find_extrema()
-_libeemd.emd_find_extrema.restype = ctypes.c_bool
+_libeemd.emd_find_extrema.restype = None
 _libeemd.emd_find_extrema.argtypes = [ndpointer(float, flags=('C', 'A')),
                                       ctypes.c_size_t,
                                       ndpointer(float, flags=('C', 'A', 'W')),
@@ -82,6 +83,7 @@ _libeemd.emd_find_extrema.argtypes = [ndpointer(float, flags=('C', 'A')),
                                       ctypes.POINTER(ctypes.c_size_t),
                                       ndpointer(float, flags=('C', 'A', 'W')),
                                       ndpointer(float, flags=('C', 'A', 'W')),
+                                      ctypes.POINTER(ctypes.c_size_t),
                                       ctypes.POINTER(ctypes.c_size_t)]
 # Call signature for emd_num_imfs()
 _libeemd.emd_num_imfs.restype = ctypes.c_size_t
@@ -96,8 +98,8 @@ _libeemd.emd_evaluate_spline.argtypes = [ndpointer(float, flags=('C', 'A')),
                                          ndpointer(float, flags=('C', 'A', 'W'))]
 
 
-def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
-         num_siftings=0, rng_seed=0):
+def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=None,
+         num_siftings=None, rng_seed=0):
     """
     Decompose input data array `inp` to Intrinsic Mode Functions (IMFs) with the
     Ensemble Empirical Mode Decomposition algorithm [1]_.
@@ -106,7 +108,10 @@ def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
     given by parameters `ensemble_size` and `noise_strength`, respectively.  The
     stopping criterion for the decomposition is given by either a S-number or
     an absolute number of siftings. In the case that both are positive numbers,
-    the sifting ends when either of the conditions is fulfilled.
+    the sifting ends when either of the conditions is fulfilled. By default,
+    `num_siftings=50` and `S_number=4`. If only `S_number` is set to a positive
+    value, `num_siftings` defaults to 50. If only `num_siftings` is set to a
+    positive value, `S_number` defaults to 0.
 
     Parameters
     ----------
@@ -114,7 +119,7 @@ def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
         The input signal to decompose. Has to be a one-dimensional array-like object.
 
     num_imfs : int, optional
-        Number of IMFs to extract. If set to `None`, a maximum value given by
+        Number of IMFs to extract. If set to `None`, a default value given by
         `emd_num_imfs(N)` is used. Note that the residual is also counted in
         this number, so num_imfs=1 will simply give you the input signal plus
         noise.
@@ -168,11 +173,17 @@ def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
     emd_num_imfs : The number of IMFs returned for a given input length `N`
         unless a specific number is set by `num_imfs`.
     """
+    # Set default values for S_number and num_siftings
+    if (S_number is None and num_siftings is None):
+        S_number = 4
+        num_siftings = 50
+    if (S_number is None and num_siftings is not None):
+        S_number = 0
+    if (S_number is not None and num_siftings is None):
+        num_siftings = 50
     # Perform some checks on input arguments first
     if (num_imfs is not None and num_imfs < 1):
         raise ValueError("num_imfs passed to eemd must be >= 1")
-    if (num_imfs is not None and num_imfs > emd_num_imfs(len(inp))):
-        raise ValueError("num_imfs passed to eemd must be <= emd_num_imfs(N)")
     if (ensemble_size < 1):
         raise ValueError("ensemble_size passed to eemd must be >= 1")
     if (S_number < 0):
@@ -180,9 +191,11 @@ def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
     if (num_siftings < 0):
         raise ValueError("num_siftings passed to eemd must be non-negative")
     if (S_number == 0 and num_siftings == 0):
-        raise ValueError("One of S_number or num_siftings must be positive")
+        raise ValueError("one of S_number or num_siftings must be positive")
     if (noise_strength < 0):
         raise ValueError("noise_strength passed to eemd must be non-negative")
+    if (num_siftings == 0):
+        warnings.warn("(E)EMD with only the S-number stopping criterion (i.e., num_siftings=0) might never finish if stuck in some obscure numerical corner case.", stacklevel=2)
     # Initialize numpy arrays
     inp = numpy.require(inp, float, ('C', 'A'))
     if (inp.ndim != 1):
@@ -197,8 +210,8 @@ def eemd(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
     outbuffer = numpy.reshape(outbuffer, (M, N))
     return outbuffer
 
-def ceemdan(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=0,
-        num_siftings=0, rng_seed=0):
+def ceemdan(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=None,
+        num_siftings=None, rng_seed=0):
     """
     Decompose input data array `inp` to Intrinsic Mode Functions (IMFs) with the
     Complete Ensemble Empirical Mode Decomposition with Adaptive Noise (CEEMDAN)
@@ -218,11 +231,17 @@ def ceemdan(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=
     eemd : The regular Ensemble Empirical Mode Decomposition routine.
     emd_num_imfs : The number of IMFs returned for a given input length.
     """
+    # Set default values for S_number and num_siftings
+    if (S_number is None and num_siftings is None):
+        S_number = 4
+        num_siftings = 50
+    if (S_number is None and num_siftings is not None):
+        S_number = 0
+    if (S_number is not None and num_siftings is None):
+        num_siftings = 50
     # Perform some checks on input arguments first
     if (num_imfs is not None and num_imfs < 1):
-        raise ValueError("num_imfs passed to eemd must be >= 1")
-    if (num_imfs is not None and num_imfs > emd_num_imfs(len(inp))):
-        raise ValueError("num_imfs passed to eemd must be <= emd_num_imfs(N)")
+        raise ValueError("num_imfs passed to ceemdan must be >= 1")
     if (ensemble_size < 1):
         raise ValueError("ensemble_size passed to ceemdan must be >= 1")
     if (S_number < 0):
@@ -230,13 +249,15 @@ def ceemdan(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=
     if (num_siftings < 0):
         raise ValueError("num_siftings passed to ceemdan must be non-negative")
     if (S_number == 0 and num_siftings == 0):
-        raise ValueError("One of S_number or num_siftings must be positive")
+        raise ValueError("one of S_number or num_siftings must be positive")
     if (noise_strength < 0):
         raise ValueError("noise_strength passed to ceemdan must be non-negative")
+    if (num_siftings == 0):
+        warnings.warn("CEEMDAN with only the S-number stopping criterion (i.e., num_siftings=0) might never finish if stuck in some obscure numerical corner case.", stacklevel=2)
     # Initialize numpy arrays
     inp = numpy.require(inp, float, ('C', 'A'))
     if (inp.ndim != 1):
-        raise ValueError("input data passed to eemd must be a 1D array")
+        raise ValueError("input data passed to ceemdan must be a 1D array")
     N = inp.size
     M = (num_imfs if num_imfs is not None else emd_num_imfs(N))
     outbuffer = numpy.zeros(M*N, dtype=float, order='C')
@@ -248,7 +269,7 @@ def ceemdan(inp, num_imfs=None, ensemble_size=250, noise_strength=0.2, S_number=
     return outbuffer
 
 
-def emd(inp, num_imfs=None, S_number=0, num_siftings=0):
+def emd(inp, num_imfs=None, S_number=None, num_siftings=None):
     """
     A convenience function for performing EMD (not EEMD). This simply calls
     function :func:`~pyeemd.eemd` with ``ensemble_size=1`` and ``noise_strength=0``.
@@ -270,10 +291,6 @@ def emd_find_extrema(x):
 
     Returns
     -------
-    all_extrema_good : bool
-        Specifies whether the extrema fulfill the requirements of an IMF, i.e.
-        , the local minima are negative and the local maxima are positive.
-
     maxx : ndarray
         The x-coordinates of the local maxima.
 
@@ -303,14 +320,14 @@ def emd_find_extrema(x):
     minx = numpy.empty(N, dtype=float, order='C')
     miny = numpy.empty(N, dtype=float, order='C')
     num_min = ctypes.c_size_t()
-    all_extrema_good = _libeemd.emd_find_extrema(x, N, maxx, maxy,
-                                                 ctypes.byref(num_max), minx,
-                                                 miny, ctypes.byref(num_min))
+    num_zc = ctypes.c_size_t()
+    _libeemd.emd_find_extrema(x, N, maxx, maxy, ctypes.byref(num_max), minx,
+            miny, ctypes.byref(num_min), ctypes.byref(num_zc))
     maxx.resize(num_max.value)
     maxy.resize(num_max.value)
     minx.resize(num_min.value)
     miny.resize(num_min.value)
-    return [all_extrema_good, maxx, maxy, minx, miny]
+    return [maxx, maxy, minx, miny]
 
 
 def emd_num_imfs(N):

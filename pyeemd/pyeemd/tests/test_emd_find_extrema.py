@@ -33,8 +33,7 @@ def test_wrong_dims():
 
 def test_empty():
     x = []
-    good, maxx, maxy, minx, miny = emd_find_extrema(x)
-    assert_true(good)
+    maxx, maxy, minx, miny = emd_find_extrema(x)
     assert_equal(maxx.size, 0)
     assert_equal(maxy.size, 0)
     assert_equal(minx.size, 0)
@@ -42,8 +41,7 @@ def test_empty():
 
 def test_size_1():
     x = [2]
-    good, maxx, maxy, minx, miny = emd_find_extrema(x)
-    assert_true(good)
+    maxx, maxy, minx, miny = emd_find_extrema(x)
     assert all(maxx == [0])
     assert all(maxy == [2])
     assert all(minx == [0])
@@ -51,8 +49,7 @@ def test_size_1():
 
 def test_size_2():
     x = [2, 5]
-    good, maxx, maxy, minx, miny = emd_find_extrema(x)
-    assert_true(good)
+    maxx, maxy, minx, miny = emd_find_extrema(x)
     assert all(maxx == [0, 1])
     assert all(maxy == x)
     assert all(minx == [0, 1])
@@ -60,8 +57,7 @@ def test_size_2():
 
 def test_size_3():
     x = [2, -1, 5]
-    good, maxx, maxy, minx, miny = emd_find_extrema(x)
-    assert_true(good)
+    maxx, maxy, minx, miny = emd_find_extrema(x)
     assert all(maxx == [0, 2])
     assert all(maxy == [2, 5])
     assert all(minx == [0, 1, 2])
@@ -69,27 +65,16 @@ def test_size_3():
 
 def test_zeros():
     zs = zeros(10)
-    good, maxx, maxy, minx, miny = emd_find_extrema(zs)
-    assert_true(good)
+    maxx, maxy, minx, miny = emd_find_extrema(zs)
     assert all(maxx == [0, 9])
     assert all(maxy == [0, 0])
     assert all(minx == [0, 9])
     assert all(miny == [0, 0])
 
-def test_good_flag():
-    for i in range(16):
-        x = normal(0, 1, 128)
-        good, maxx, maxy, minx, miny = emd_find_extrema(x)
-        yield check_flags, good, maxy, miny
-
-def check_flags(good_flag, maxy, miny):
-    extrema_good = (all(maxy[1:-1] > 0) and all(miny[1:-1] < 0))
-    assert_equal(extrema_good, good_flag)
-
 def test_extrema():
     for i in range(16):
         x = normal(0, 1, 128)
-        good, maxx, maxy, minx, miny = emd_find_extrema(x)
+        maxx, maxy, minx, miny = emd_find_extrema(x)
         yield check_extrema, x, maxx, maxy, minx, miny
 
 def check_extrema(x, maxx, maxy, minx, miny):
