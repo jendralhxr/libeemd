@@ -8,7 +8,7 @@ details of what `libeemd` actually computes are available as a separate
 [article][], which you should read if you are unsure about what EMD, EEMD and
 CEEMDAN are.
 
-[article]: TO_BE_RELEASED
+[article]: https://dx.doi.org/10.1007/s00180-015-0603-9
 
 Introduction
 ------------

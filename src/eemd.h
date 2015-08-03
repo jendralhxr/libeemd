@@ -24,7 +24,9 @@
 #endif
 
 #if EEMD_DEBUG == 0
+#ifndef NDEBUG
 #define NDEBUG
+#endif
 #endif
 
 #include <assert.h>
