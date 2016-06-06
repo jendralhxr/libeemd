@@ -64,7 +64,7 @@ If you want to use the easy route and use the `Makefile` distributed with
 [GCC]: http://gcc.gnu.org/
 [GSL]: http://www.gnu.org/software/gsl/
 
-### Compilation
+### Installation
 
 If you have Make and GCC installed, you can simply run
 
@@ -73,8 +73,17 @@ If you have Make and GCC installed, you can simply run
 in the top-level directory of `libeemd` (the one with the `Makefile`). This
 command compiles `libeemd` into a static library `libeemd.a`, a dynamic library
 `libeemd.so`, and copies the header file `eemd.h` to the top-level directory.
-You can then copy these files to wherever you need them. Note that to use the
-Python interface `pyeemd` you don't need to move these files anywhere.
+You can then copy these files to wherever you need them.
+
+You can use `make install` to install the library files to your system. By
+default this command installs the files under `/usr` (so you'll need root
+privileges), but you can specify another installation location like this:
+
+	PREFIX=$HOME/usr make install
+
+If you set a `PREFIX` you need to make sure other programs will find `libeemd`
+in this location. For example, if you set `PREFIX` to `$HOME/usr`, the
+directory `$HOME/usr/lib` should be in `LIBRARY_PATH` and `LD_LIBRARY_PATH`.
 
 Using the C interface
 ------------
