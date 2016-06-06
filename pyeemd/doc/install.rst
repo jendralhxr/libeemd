@@ -5,11 +5,9 @@ Installing pyeemd
 
 The `pyeemd` module comes with a regular Python distutils installation script,
 so installing it should be quite straightforward. The only catch is that you
-need to first compile ``libeemd.so``, since `pyeemd` is only a wrapper for that
-library. Please see the ``README`` file distributed with `libeemd` on more
-details on how to compile `libeemd`, but if you are unpatient and already have
-the necessary dependencies installed (GCC, GSL), you can just run ``make`` in
-the top-level directory of `libeemd` and you are done.
+first need install `libeemd`, since `pyeemd` is only a wrapper for that
+library. Please see the ``README`` file distributed with `libeemd` for more
+details.
 
 To install `pyeemd` please run::
 
