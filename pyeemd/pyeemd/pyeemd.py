@@ -1,4 +1,3 @@
-#!/usr/bin/env python2
 # vim: set fileencoding=utf-8 ts=4 sw=4 lw=79
 
 # Copyright 2013 Perttu Luukko
