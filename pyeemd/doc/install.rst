@@ -3,7 +3,7 @@
 Installing pyeemd
 =================
 
-The `pyeemd` module comes with a regular Python distutils installation script,
+The `pyeemd` module comes with a regular Python `setuptools` installation script,
 so installing it should be quite straightforward. The only catch is that you
 first need install `libeemd`, since `pyeemd` is only a wrapper for that
 library. Please see the ``README`` file distributed with `libeemd` for more
