@@ -24,20 +24,38 @@ Decomposition on various kinds of data. This Python module exposes the methods
 defined in ``libeemd.so`` via a simple ``ctypes`` interface.
 
 .. important::
-    Note that the file ``libeemd.so`` must be present in the same directory as
-    this file.
+    If the library file ``libeemd.so`` is present in the same directory as
+    ``pyeemd.py`` pyeemd will try to use it. Otherwise it resorts to
+    ``ctypes.util.find_library`` for finding it. If you have trouble getting
+    pyeemd to find the libeemd library, check out the documentation of
+    ``ctypes.util.find_library`` to see what the utility actually does on your
+    platform.
 """
 
 import os
 import warnings
 import ctypes
+from ctypes.util import find_library
 import numpy
 from numpy.ctypeslib import ndpointer
 
 # Load libeemd.so
-_LIBDIR = os.path.dirname(os.path.realpath(__file__))
-_LIBFILE = os.path.join(_LIBDIR, "libeemd.so")
-_libeemd = ctypes.CDLL(_LIBFILE)
+
+def _init():
+    # First try 'libeemd.so' in current directory
+    dirname = os.path.dirname(os.path.realpath(__file__))
+    check_first_names = ["libeemd.so"]
+    for libfile in [os.path.join(dirname, filename) for filename in check_first_names]:
+        if os.path.exists(libfile):
+            return ctypes.CDLL(libfile)
+    # Then try find_library
+    lib = find_library("eemd")
+    if lib:
+        return ctypes.CDLL(lib)
+    else:
+        raise RuntimeError("Cannot find libeemd C library. Tried directory '%s' and ctypes.util.find_library" % dirname)
+
+_libeemd = _init()
 
 def libeemd_error_handler(err):
     """
