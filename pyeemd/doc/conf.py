@@ -31,7 +31,6 @@ sys.path.insert(0, os.path.abspath('../pyeemd'))
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
-    'sphinx.ext.pngmath',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'numpydoc',
