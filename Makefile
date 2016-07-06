@@ -7,6 +7,12 @@ commonflags += $(CFLAGS)
 commonflags += -g -DEEMD_DEBUG=0
 commonflags += -fopenmp
 PREFIX ?= /usr
+
+SONAME = -soname
+ifeq ($(shell uname -s),Darwin)
+    SONAME = -install_name
+endif
+
 define uninstall_msg
 If you used $(PREFIX) as the prefix when running `make install`,
 you can undo the install by removing these files:
@@ -44,7 +50,7 @@ libeemd.a: obj/eemd.o
 	$(AR) rcs $@ $^
 
 libeemd.so.$(version): src/eemd.c src/eemd.h
-	gcc $(commonflags) $< -fPIC -shared -Wl,-soname,$@ $(gsl_flags) -o $@
+	gcc $(commonflags) $< -fPIC -shared -Wl,$(SONAME),$@ $(gsl_flags) -o $@
 	ln -sf $@ libeemd.so
 
 eemd.h: src/eemd.h
