@@ -200,6 +200,7 @@ libeemd_error_code eemd(double const* restrict input, size_t N,
 		double* restrict output, size_t M,
 		unsigned int ensemble_size, double noise_strength, unsigned int
 		S_number, unsigned int num_siftings, unsigned long int rng_seed) {
+	gsl_set_error_handler_off();
 	// Validate parameters
 	libeemd_error_code validation_result = _validate_eemd_parameters(ensemble_size, noise_strength, S_number, num_siftings);
 	if (validation_result != EMD_SUCCESS) {
@@ -310,6 +311,7 @@ libeemd_error_code ceemdan(double const* restrict input, size_t N,
 		double* restrict output, size_t M,
 		unsigned int ensemble_size, double noise_strength, unsigned int
 		S_number, unsigned int num_siftings, unsigned long int rng_seed) {
+	gsl_set_error_handler_off();
 	// Validate parameters
 	libeemd_error_code validation_result = _validate_eemd_parameters(ensemble_size, noise_strength, S_number, num_siftings);
 	if (validation_result != EMD_SUCCESS) {
@@ -723,6 +725,7 @@ size_t emd_num_imfs(size_t N) {
 
 libeemd_error_code emd_evaluate_spline(double const* restrict x, double const* restrict y,
 		size_t N, double* restrict spline_y, double* restrict spline_workspace) {
+	gsl_set_error_handler_off();
 	const size_t n = N-1;
 	const size_t max_j = (size_t)x[n];
 	if (N <= 1) {
@@ -743,7 +746,12 @@ libeemd_error_code emd_evaluate_spline(double const* restrict x, double const* r
 	// Fall back to linear interpolation (for N==2) or polynomial interpolation
 	// (for N==3)
 	if (N <= 3) {
-		gsl_poly_dd_init(spline_workspace, x, y, N);
+		int gsl_status = gsl_poly_dd_init(spline_workspace, x, y, N);
+		if (gsl_status != GSL_SUCCESS) {
+			fprintf(stderr, "Error reported by gsl_poly_dd_init: %s\n",
+				gsl_strerror(gsl_status));
+			return EMD_GSL_ERROR;
+		}
 		for (size_t j=0; j<=max_j; j++) {
 			spline_y[j] = gsl_poly_dd_eval(spline_workspace, x, N, j);
 		}
@@ -794,14 +802,14 @@ libeemd_error_code emd_evaluate_spline(double const* restrict x, double const* r
 	gsl_vector_view subdiag_vec = gsl_vector_view_array(subdiag, n-2);
 	gsl_vector_view g_vec = gsl_vector_view_array(g, n-1);
 	gsl_vector_view solution_vec = gsl_vector_view_array(c+1, n-1);
-	const int status = gsl_linalg_solve_tridiag(&diag_vec.vector,
+	int gsl_status = gsl_linalg_solve_tridiag(&diag_vec.vector,
 			                                    &supdiag_vec.vector,
 												&subdiag_vec.vector,
 												&g_vec.vector,
 												&solution_vec.vector);
-	if (status) {
+	if (gsl_status != GSL_SUCCESS) {
 		fprintf(stderr, "Error reported by gsl_linalg_solve_tridiag: %s\n",
-				gsl_strerror(status));
+				gsl_strerror(gsl_status));
 		return EMD_GSL_ERROR;
 	}
 	// Compute c[0] and c[n]
