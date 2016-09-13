@@ -1,1 +1,0 @@
-This is the Python interface for `libeemd`. For the documentation, please look at the `doc` subdirectory (you'll need `Sphinx` and `numpydoc` to build the documentation) or head straight to [Read the Docs](http://pyeemd.readthedocs.org/).
