@@ -162,14 +162,17 @@ typedef struct {
 	emd_workspace* restrict emd_w;
 } eemd_workspace;
 
-eemd_workspace* allocate_eemd_workspace(size_t N, unsigned long int rng_seed) {
+eemd_workspace* allocate_eemd_workspace(size_t N) {
 	eemd_workspace* w = malloc(sizeof(eemd_workspace));
 	w->N = N;
 	w->r = gsl_rng_alloc(gsl_rng_mt19937);
-	gsl_rng_set(w->r, rng_seed);
 	w->x = malloc(N*sizeof(double));
 	w->emd_w = allocate_emd_workspace(N);
 	return w;
+}
+
+void set_rng_seed(eemd_workspace* w, unsigned long int rng_seed) {
+	gsl_rng_set(w->r, rng_seed);
 }
 
 void free_eemd_workspace(eemd_workspace* w) {
@@ -253,7 +256,7 @@ libeemd_error_code eemd(double const* restrict input, size_t N,
 			}
 		}
 		// Each thread allocates its own workspace
-		ws[thread_id] = allocate_eemd_workspace(N, rng_seed+thread_id);
+		ws[thread_id] = allocate_eemd_workspace(N);
 		eemd_workspace* w = ws[thread_id];
 		// All threads share the same array of locks
 		w->emd_w->locks = locks;
@@ -270,6 +273,9 @@ libeemd_error_code eemd(double const* restrict input, size_t N,
 				array_copy(input, N, w->x);
 			}
 			else {
+				// set rng seed based on ensemble member to ensure
+				// reproducibility even in a multithreaded case
+				set_rng_seed(w, rng_seed+en_i);
 				for (size_t i=0; i<N; i++) {
 					w->x[i] = input[i] + gsl_ran_gaussian(w->r, noise_sigma);
 				}
@@ -371,12 +377,15 @@ libeemd_error_code ceemdan(double const* restrict input, size_t N,
 			ws = malloc(num_threads*sizeof(eemd_workspace*));
 		}
 		// Each thread allocates its own workspace
-		ws[thread_id] = allocate_eemd_workspace(N, rng_seed+thread_id);
+		ws[thread_id] = allocate_eemd_workspace(N);
 		eemd_workspace* w = ws[thread_id];
 		// Precompute and store white noise, since for each mode of the data we
 		// need the same mode of the corresponding realization of noise
 		#pragma omp for
 		for (size_t en_i=0; en_i<ensemble_size; en_i++) {
+			// set rng seed based on ensemble member to ensure
+			// reproducibility even in a multithreaded case
+			set_rng_seed(w, rng_seed+en_i);
 			for (size_t j=0; j<N; j++) {
 				noises[N*en_i+j] = gsl_ran_gaussian(w->r, noise_sigma);
 			}
