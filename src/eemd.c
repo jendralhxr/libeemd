@@ -53,6 +53,11 @@ inline static void array_add_to(double const* src1, double const* src2, size_t n
 		dest[i] = src1[i] + src2[i];
 }
 
+inline static void array_addmul_to(double const* src1, double const* src2, double val, size_t n, double* dest) {
+	for (size_t i=0; i<n; i++)
+		dest[i] = src1[i] + val*src2[i];
+}
+
 inline static void array_sub(double const* src, size_t n, double* dest) {
 	for (size_t i=0; i<n; i++)
 		dest[i] -= src[i];
@@ -336,8 +341,6 @@ libeemd_error_code ceemdan(double const* restrict input, size_t N,
 		M = emd_num_imfs(N);
 	}
 	const double one_per_ensemble_size = 1.0/ensemble_size;
-	// The noise standard deviation is noise_strength times the standard deviation of input data
-	const double noise_sigma = (noise_strength != 0)? gsl_stats_sd(input, 1, N)*noise_strength : 0;
 	// Initialize output data to zero
 	memset(output, 0x00, M*N*sizeof(double));
 	// Each thread gets a separate workspace if we are using OpenMP
@@ -387,7 +390,7 @@ libeemd_error_code ceemdan(double const* restrict input, size_t N,
 			// reproducibility even in a multithreaded case
 			set_rng_seed(w, rng_seed+en_i);
 			for (size_t j=0; j<N; j++) {
-				noises[N*en_i+j] = gsl_ran_gaussian(w->r, noise_sigma);
+				noises[N*en_i+j] = gsl_ran_gaussian(w->r, 1.0);
 			}
 		}
 	} // Return to sequental mode
@@ -422,8 +425,13 @@ libeemd_error_code ceemdan(double const* restrict input, size_t N,
 				// this ensemble member
 				double* const noise = &noises[N*en_i];
 				double* const noise_residual = &noise_residuals[N*en_i];
-				// Initialize input signal as data + noise
-				array_add_to(res, noise, N, w->x);
+				// Initialize input signal as data + noise.
+				// The noise standard deviation is noise_strength times the
+				// standard deviation of input data divided by the standard
+				// deviation of the noise. This is used to fix the SNR at each
+				// stage.
+				const double noise_sigma = noise_strength*gsl_stats_sd(res, 1, N)/gsl_stats_sd(noise, 1, N);
+				array_addmul_to(res, noise, noise_sigma, N, w->x);
 				// Sift to extract first EMD mode
 				sift_err = _sift(w->x, w->emd_w->sift_w, S_number, num_siftings, &sift_counter);
 				#pragma omp flush(sift_err)

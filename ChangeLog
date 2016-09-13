@@ -3,6 +3,8 @@ Notable changes from previous release:
 In development:
 	* pyeemd splitted to a separate project
 	* Easier installation on OSX
+	* In CEEMDAN the SNR is fixed separately for each mode as done by Torres
+	  et al
 
 Version 1.3.1:
 	* Minor documentation improvements
