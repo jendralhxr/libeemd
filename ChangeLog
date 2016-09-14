@@ -1,6 +1,8 @@
 Notable changes from previous release:
 
 In development:
+
+Version 1.4:
 	* pyeemd splitted to a separate project
 	* Easier installation on OSX
 	* The GSL error handler is disabled and realistic errors are instead
