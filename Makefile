@@ -1,6 +1,6 @@
 .PHONY: all clean install uninstall
 
-version := 1.4
+version := 1.4.1
 gsl_flags := $(shell pkg-config --libs --cflags gsl)
 ifeq ($(gsl_flags),)
 $(error Failed to query GSL complilation flags from pkg-config)
