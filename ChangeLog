@@ -2,6 +2,10 @@ Notable changes from previous release:
 
 In development:
 
+Version 1.4.1:
+	* Fix bug in CEEMDAN SNR fixing introduced in 1.4; in some cases
+	  (especially N=16) the noise can have zero variance causing an overflow
+
 Version 1.4:
 	* pyeemd splitted to a separate project
 	* Easier installation on OSX
