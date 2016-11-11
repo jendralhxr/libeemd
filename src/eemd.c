@@ -430,7 +430,8 @@ libeemd_error_code ceemdan(double const* restrict input, size_t N,
 				// standard deviation of input data divided by the standard
 				// deviation of the noise. This is used to fix the SNR at each
 				// stage.
-				const double noise_sigma = noise_strength*gsl_stats_sd(res, 1, N)/gsl_stats_sd(noise, 1, N);
+				const double noise_sd = gsl_stats_sd(noise, 1, N);
+				const double noise_sigma = (noise_sd != 0)? noise_strength*gsl_stats_sd(res, 1, N)/noise_sd : 0;
 				array_addmul_to(res, noise, noise_sigma, N, w->x);
 				// Sift to extract first EMD mode
 				sift_err = _sift(w->x, w->emd_w->sift_w, S_number, num_siftings, &sift_counter);
