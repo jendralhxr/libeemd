@@ -61,6 +61,10 @@ typedef enum {
 	EMD_GSL_ERROR = 8
 } libeemd_error_code;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Helper functions to print an error message if an error occured
 void emd_report_if_error(libeemd_error_code err);
 void emd_report_to_file_if_error(FILE* file, libeemd_error_code err);
@@ -85,8 +89,8 @@ void emd_report_to_file_if_error(FILE* file, libeemd_error_code err);
 // the sifting ends when either criterion is fulfilled. The final parameter is
 // the seed given to the random number generator. A value of zero denotes a
 // RNG-specific default value.
-libeemd_error_code eemd(double const* restrict input, size_t N,
-		double* restrict output, size_t M,
+libeemd_error_code eemd(double const*  input, size_t N,
+		double*  output, size_t M,
 		unsigned int ensemble_size, double noise_strength, unsigned int
 		S_number, unsigned int num_siftings, unsigned long int rng_seed);
 
@@ -97,8 +101,8 @@ libeemd_error_code eemd(double const* restrict input, size_t N,
 //   (2011) 4144-4147
 //
 // Parameters are identical to routine eemd
-libeemd_error_code ceemdan(double const* restrict input, size_t N,
-		double* restrict output, size_t M,
+libeemd_error_code ceemdan(double const*  input, size_t N,
+		double*  output, size_t M,
 		unsigned int ensemble_size, double noise_strength, unsigned int
 		S_number, unsigned int num_siftings, unsigned long int rng_seed);
 
@@ -108,9 +112,9 @@ libeemd_error_code ceemdan(double const* restrict input, size_t N,
 // arrays for the coordinates must be at least size N. The method also counts
 // the number of zero crossings in the data, and saves the results into the
 // pointer given as num_zero_crossings_ptr.
-void emd_find_extrema(double const* restrict x, size_t N,
-		double* restrict maxx, double* restrict maxy, size_t* num_max_ptr,
-		double* restrict minx, double* restrict miny, size_t* num_min_ptr,
+void emd_find_extrema(double const*  x, size_t N,
+		double*  maxx, double*  maxy, size_t* num_max_ptr,
+		double*  minx, double*  miny, size_t* num_min_ptr,
 		size_t* num_zero_crossings_ptr);
 
 // Return the number of IMFs that can be extracted from input data of length N,
@@ -129,7 +133,11 @@ size_t emd_num_imfs(size_t N);
 //
 // This routine is mainly exported so that it can be tested separately to
 // produce identical results to the Matlab routine 'spline'.
-libeemd_error_code emd_evaluate_spline(double const* restrict x, double const* restrict y,
-		size_t N, double* restrict spline_y, double* spline_workspace);
+libeemd_error_code emd_evaluate_spline(double const*  x, double const*  y,
+		size_t N, double*  spline_y, double* spline_workspace);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _EEMD_H_

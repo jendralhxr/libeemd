@@ -39,7 +39,7 @@ inline static void release_lock(__attribute__((unused)) lock* l) {}
 
 
 // Helper functions for working with data arrays
-inline static void array_copy(double const* restrict src, size_t n, double* restrict dest) {
+inline static void array_copy(const double * src, size_t n, double*  dest) {
 	memcpy(dest, src, n*sizeof(double));
 }
 
@@ -85,15 +85,15 @@ typedef struct {
 	// Number of samples in the signal
 	size_t N;
 	// Found extrema
-	double* restrict maxx;
-	double* restrict maxy;
-	double* restrict minx;
-	double* restrict miny;
+	double*  maxx;
+	double*  maxy;
+	double*  minx;
+	double*  miny;
 	// Upper and lower envelope spline values
-	double* restrict maxspline;
-	double* restrict minspline;
+	double*  maxspline;
+	double*  minspline;
 	// Extra memory required for spline evaluation
-	double* restrict spline_workspace;
+	double*  spline_workspace;
 } sifting_workspace;
 
 sifting_workspace* allocate_sifting_workspace(size_t N) {
@@ -130,9 +130,9 @@ void free_sifting_workspace(sifting_workspace* w) {
 typedef struct {
 	size_t N;
 	// Previous residual for EMD
-	double* restrict res;
+	double*  res;
 	// What is needed for sifting
-	sifting_workspace* restrict sift_w;
+	sifting_workspace*  sift_w;
 	// A pointer for shared locks. These locks are used to make EMD thread-safe
 	// even when several threads run EMD with the same output matrix (we'll do
 	// this in EEMD).
@@ -162,9 +162,9 @@ typedef struct {
 	// The random number generator
 	gsl_rng* r;
 	// The ensemble member signal
-	double* restrict x;
+	double*  x;
 	// What is needed for running EMD
-	emd_workspace* restrict emd_w;
+	emd_workspace*  emd_w;
 } eemd_workspace;
 
 eemd_workspace* allocate_eemd_workspace(size_t N) {
@@ -189,23 +189,23 @@ void free_eemd_workspace(eemd_workspace* w) {
 
 // Forward declaration of a helper function used internally for making a single
 // EMD run with a preallocated workspace
-static libeemd_error_code _emd(double* restrict input, emd_workspace* restrict w,
-		double* restrict output, size_t M,
+static libeemd_error_code _emd(double*  input, emd_workspace*  w,
+		double*  output, size_t M,
 		unsigned int S_number, unsigned int num_siftings);
 
 // Forward declaration of a helper function for applying the sifting procedure to
 // input until it is reduced to an IMF according to the stopping criteria given
 // by S_number and num_siftings
-static libeemd_error_code _sift(double* restrict input, sifting_workspace*
-		restrict w, unsigned int S_number, unsigned int num_siftings, unsigned int*
+static libeemd_error_code _sift(double*  input, sifting_workspace*
+		 w, unsigned int S_number, unsigned int num_siftings, unsigned int*
 		sift_counter);
 
 // Forward declaration of a helper function for parameter validation shared by functions eemd and ceemdan
 static inline libeemd_error_code _validate_eemd_parameters(unsigned int ensemble_size, double noise_strength, unsigned int S_number, unsigned int num_siftings);
 
 // Main EEMD decomposition routine definition
-libeemd_error_code eemd(double const* restrict input, size_t N,
-		double* restrict output, size_t M,
+libeemd_error_code eemd(double const*  input, size_t N,
+		double*  output, size_t M,
 		unsigned int ensemble_size, double noise_strength, unsigned int
 		S_number, unsigned int num_siftings, unsigned long int rng_seed) {
 	gsl_set_error_handler_off();
@@ -318,8 +318,8 @@ libeemd_error_code eemd(double const* restrict input, size_t N,
 }
 
 // Main CEEMDAN decomposition routine definition
-libeemd_error_code ceemdan(double const* restrict input, size_t N,
-		double* restrict output, size_t M,
+libeemd_error_code ceemdan(double const*  input, size_t N,
+		double*  output, size_t M,
 		unsigned int ensemble_size, double noise_strength, unsigned int
 		S_number, unsigned int num_siftings, unsigned long int rng_seed) {
 	gsl_set_error_handler_off();
@@ -395,7 +395,7 @@ libeemd_error_code ceemdan(double const* restrict input, size_t N,
 		}
 	} // Return to sequental mode
 	// Allocate memory for the residual shared among all threads
-	double* restrict res = malloc(N*sizeof(double));
+	double*  res = malloc(N*sizeof(double));
 	// For the first iteration the residual is the input signal
 	array_copy(input, N, res);
 	// Each mode is extracted sequentially, but we use parallelization in the inner loop
@@ -500,8 +500,8 @@ static inline libeemd_error_code _validate_eemd_parameters(unsigned int ensemble
 // Helper function for applying the sifting procedure to input until it is
 // reduced to an IMF according to the stopping criteria given by S_number and
 // num_siftings. The required number of siftings is saved to sift_counter.
-static libeemd_error_code _sift(double* restrict input, sifting_workspace*
-		restrict w, unsigned int S_number, unsigned int num_siftings,
+static libeemd_error_code _sift(double*  input, sifting_workspace*
+		 w, unsigned int S_number, unsigned int num_siftings,
 		unsigned int* sift_counter) {
 	const size_t N = w->N;
 	// Provide some shorthands to avoid excessive '->' operators
@@ -574,8 +574,8 @@ static libeemd_error_code _sift(double* restrict input, sifting_workspace*
 // Helper function for extracting all IMFs from input using the sifting
 // procedure defined by _sift. The contents of the input array are destroyed in
 // the process.
-static libeemd_error_code _emd(double* restrict input, emd_workspace* restrict w,
-		double* restrict output, size_t M,
+static libeemd_error_code _emd(double*  input, emd_workspace*  w,
+		double*  output, size_t M,
 		unsigned int S_number, unsigned int num_siftings) {
 	// Provide some shorthands to avoid excessive '->' operators
 	const size_t N = w->N;
@@ -621,9 +621,9 @@ static libeemd_error_code _emd(double* restrict input, emd_workspace* restrict w
 	return EMD_SUCCESS;
 }
 
-void emd_find_extrema(double const* restrict x, size_t N,
-		double* restrict maxx, double* restrict maxy, size_t* nmax,
-		double* restrict minx, double* restrict miny, size_t* nmin,
+void emd_find_extrema(double const*  x, size_t N,
+		double*  maxx, double*  maxy, size_t* nmax,
+		double*  minx, double*  miny, size_t* nmin,
 		size_t* nzc) {
 	// Set the number of extrema and zero crossings to zero initially
 	*nmax = 0;
@@ -741,8 +741,8 @@ size_t emd_num_imfs(size_t N) {
 	return (size_t)(log2(N));
 }
 
-libeemd_error_code emd_evaluate_spline(double const* restrict x, double const* restrict y,
-		size_t N, double* restrict spline_y, double* restrict spline_workspace) {
+libeemd_error_code emd_evaluate_spline(double const*  x, double const*  y,
+		size_t N, double*  spline_y, double*  spline_workspace) {
 	gsl_set_error_handler_off();
 	const size_t n = N-1;
 	const size_t max_j = (size_t)x[n];
