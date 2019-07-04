@@ -1,4 +1,4 @@
-libeemd – a C library for performing the ensemble empirical mode decomposition
+libeemd – a C/C++ library for performing the ensemble empirical mode decomposition
 ===================================
 
 
