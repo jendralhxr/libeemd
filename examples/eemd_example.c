@@ -57,9 +57,9 @@ int main(int argc, char **argv) {
 	// Write output to file
 	FILE* fp = fopen(outfile, "w");
 	for (size_t j=0; j<N; j++) {
-		fprintf(fp, "%f ", inp[j]);
+	//	fprintf(fp, "%f ", inp[j]);
 	}
-	fprintf(fp, "\n");
+	fprintf(fp, "selesaiinput\n");
 	for (size_t i=0; i<M; i++) {
 		for (size_t j=0; j<N; j++) {
 			fprintf(fp, "%f ", outp[i*N+j]);
