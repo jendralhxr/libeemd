@@ -2,3 +2,4 @@
 writes its output to `eemd_example.out`. If you have installed `pyeemd` you can
 plot the results with the Python script `eemd_example_plot.py`. To compile the
 example please run `make`.
+make sure the library (libeemd.so) in the parent directory was already compiled.
